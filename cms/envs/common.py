@@ -372,6 +372,9 @@ INSTALLED_APPS = (
 
     # for managing course modes
     'course_modes'
+
+    # for course indexing
+    'search',
 )
 
 
