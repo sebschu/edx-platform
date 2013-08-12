@@ -100,6 +100,7 @@ def initial_setup(server):
         num_attempts = 0
         while (not success) and num_attempts < MAX_VALID_BROWSER_ATTEMPTS:
             world.browser = Browser(browser_driver)
+            world.browser.driver.set_script_timeout(10)
 
             # Try to visit the main page
             # If the browser session is invalid, this will
@@ -137,6 +138,7 @@ def initial_setup(server):
             browser=settings.SELENIUM_GRID.get('BROWSER'),
         )
         world.browser.driver.implicitly_wait(30)
+        world.browser.driver.set_script_timeout(10)
 
     else:
         raise Exception("Unknown selenium client '{}'".format(world.LETTUCE_SELENIUM_CLIENT))

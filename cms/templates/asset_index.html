@@ -1,6 +1,8 @@
 <%inherit file="base.html" />
-<%! from django.core.urlresolvers import reverse %>
-<%! from django.utils.translation import ugettext as _ %>
+<%!
+  from django.core.urlresolvers import reverse
+  from django.utils.translation import ugettext as _
+%>
 <%block name="bodyclass">is-signedin course uploads</%block>
 <%block name="title">${_("Files &amp; Uploads")}</%block>
 
@@ -13,14 +15,15 @@
 </%block>
 
 <%block name="jsextra">
-    <script src="${static.url('js/vendor/mustache.js')}"></script>
-    <script src="${static.url('js/vendor/jQuery-File-Upload/js/jquery.iframe-transport.js')}"> </script>
-    <script src="${static.url('js/vendor/jQuery-File-Upload/js/jquery.fileupload.js')}"> </script>
+<script type="text/javascript">
+require(["jquery", "gettext", "js/models/asset", "js/collections/asset",
+         "js/views/assets", "js/views/feedback_prompt",
+         "js/views/feedback_notification", "jquery.fileupload"],
+        function($, gettext, AssetModel, AssetCollection, AssetsView, PromptView, NotificationView) {
 
-    <script type="text/javascript">
-        var assets = new CMS.Models.AssetCollection(${asset_list});
+        var assets = new AssetCollection(${asset_list});
         assets.url = "${update_asset_callback_url}";
-        var assetsView = new CMS.Views.Assets({collection: assets, el: $('#asset_table_body')});
+        var assetsView = new AssetsView({collection: assets, el: $('#asset_table_body')});
 
         $(document).ready(function() {
             $('.uploads .upload-button').bind('click', showUploadModal);
@@ -105,7 +108,7 @@
             $('.upload-modal .choose-file-button').html(gettext('Load Another File')).show();
             $('.upload-modal .progress-fill').width('100%');
 
-            assetsView.addAsset(new CMS.Models.Asset(asset));
+            assetsView.addAsset(new AssetModel(asset));
         };
 
     </script>

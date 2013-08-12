@@ -1,5 +1,7 @@
-CMS.Views.Assets = Backbone.View.extend({
-    // takes CMS.Models.AssetCollection as model
+define(["backbone", "js/views/asset"], function(Backbone, AssetView) {
+
+var AssetsView = Backbone.View.extend({
+    // takes AssetCollection as model
 
     initialize : function() {
         this.listenTo(this.collection, 'destroy', this.handleDestroy);
@@ -12,7 +14,7 @@ CMS.Views.Assets = Backbone.View.extend({
         var self = this;
         this.collection.each(
             function(asset) {
-                var view = new CMS.Views.Asset({model: asset});
+                var view = new AssetView({model: asset});
                 self.$el.append(view.render().el);
             });
 
@@ -33,7 +35,7 @@ CMS.Views.Assets = Backbone.View.extend({
         // If asset is not already being shown, add it.
         if (this.collection.findWhere({'url': model.get('url')}) === undefined) {
             this.collection.add(model, {at: 0});
-            var view = new CMS.Views.Asset({model: model});
+            var view = new AssetView({model: model});
             this.$el.prepend(view.render().el);
 
             analytics.track('Uploaded a File', {
@@ -43,3 +45,6 @@ CMS.Views.Assets = Backbone.View.extend({
         }
     }
 });
+
+return AssetsView;
+}); // end define();
