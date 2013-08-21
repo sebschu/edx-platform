@@ -9,7 +9,7 @@ from django.test import TestCase
 from django.test.utils import override_settings
 
 from pymongo import MongoClient
-from pyfuzz.generator import random_item, random_ascii
+from pyfuzz.generator import random_item
 
 from search.es_requests import MongoIndexer, NoSearchableTextException
 
@@ -18,7 +18,7 @@ def dummy_document(key, values, data_type, **kwargs):
     """
     Returns a document matching the key to a dictionary mapping each value to a random string
 
-    kwargs is passed directly to the random_ascii method of pyfuzz
+    kwargs is passed directly to the random_item method of pyfuzz
     """
 
     dummy_data = {}
@@ -58,7 +58,7 @@ class MongoTest(TestCase):
         video_module = dummy_document("definition", ["data"], "ascii", length=200)
         test_string = '<video youtube=\"0.75:-gKKUBQ2NWA,1.0:dJvsFg10JY,1.25:lm3IKbRE2VA,1.50:Pz0XiZ8wO9o\">'
         video_module["definition"]["data"] += test_string
-        test_transcript = {"text": random_ascii(length=50)}
+        test_transcript = {"text": random_item("ascii", length=50)}
         test_document = {"files_id": {"name": "dJvsFg10JY"}, "data": json.dumps(test_transcript)}
         self.chunk_collection.insert(test_document)
         transcript = self.indexer._find_transcript_for_video_module(video_module).encode("utf-8", "ignore")
@@ -128,7 +128,7 @@ class MongoTest(TestCase):
         video_module = dummy_document("definition", ["data"], "ascii", length=200)
         test_string = '<video youtube=\"0.75:-gKKUBQ2NWA,1.0:dJvsFg10JY,1.25:lm3IKbRE2VA,1.50:Pz0XiZ8wO9o\">'
         video_module["definition"]["data"] += test_string
-        test_transcript = {"text": random_ascii(length=50)}
+        test_transcript = {"text": random_item("ascii", length=50)}
         test_document = {"files_id": {"name": "dJvsFg10JY"}, "data": json.dumps(test_transcript)}
         self.chunk_collection.insert(test_document)
         transcript = self.indexer._get_searchable_text(video_module, "transcript").encode("utf-8", "ignore")

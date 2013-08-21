@@ -62,9 +62,8 @@ def _find(request, course_id, page=1, current_filter="all"):
     """
 
     database = settings.ES_DATABASE
-    full_query_data = {}
     query = request.GET.get("s", "*.*")
-    full_query_data.update(
+    full_query_data = \
         {
             "query": {
                 "query_string": {
@@ -75,7 +74,6 @@ def _find(request, course_id, page=1, current_filter="all"):
             },
             "size": "1000"
         }
-    )
     index = ",".join(
         [content_type + "-index" for content_type in CONTENT_TYPES if request.GET.get(content_type, False)]
     )

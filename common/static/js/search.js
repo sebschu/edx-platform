@@ -1,67 +1,3 @@
-function correctionLink(event, spelling_correction){
-    $("#searchbox")[0].value = spelling_correction;
-    submitForms(false);
-}
-
-function submitForms(retain_page) {
-    var get_data = [];
-    var form_list = $(".auto-submit .parameter");
-    for (var i in form_list){
-        get_data.push.apply(get_data, form_list.eq(i).serializeArray());
-    }
-    var url = document.URL.split("?")[0]+"?";
-    for (var o in get_data){
-        if (retain_page === false){
-            if (get_data[o].name == "page"){
-                get_data[o].value = 1;
-            }
-        }
-        url = url + (get_data[o].name + "=" +get_data[o].value + "&");
-    }
-    document.location.href = url.substring(0, url.length-1);
-}
-
-function incrementPage(){
-    var current_page = $("#current-page input");
-    current_page[0].value++;
-    submitForms(true);
-}
-
-function decrementPage(){
-    var current_page = $("#current-page input");
-    current_page[0].value--;
-    submitForms(true);
-}
-
-function clickHandle(e, retain_page){
-    e.preventDefault();
-    submitForms(retain_page);
-}
-
-function searchHandle(e, retain_page){
-    if(e.keyCode === 13){
-        e.preventDefault();
-        submitForms(retain_page);
-    }
-}
-
-function changeHandler(input, max_pages){
-    if (input.value < 1) {input.value=1;}
-    if (input.value > max_pages) {input.value=max_pages;}
-}
-
-function filterTrigger(input, type, retain_page){
-    if (type == "org"){
-        $("#selected-org").val($($(input).children(":first")).text());
-    }
-
-    if (type == "course"){
-        $("#selected-course").val($(input).children(":first").text());
-    }
-
-    submitForms(retain_page);
-}
-
 function getParameters(){
     var paramstr = window.location.search.substr(1);
     var args = paramstr.split("&");
@@ -79,7 +15,7 @@ function getSearchAction(){
     var urlSplit = document.URL.split("/");
     var courseIndex = urlSplit.indexOf("courses");
     var searchAction = urlSplit.slice(courseIndex, courseIndex+4);
-    searchAction.push("search")
+    searchAction.push("search");
     return searchAction.join("/");
 }
 
@@ -121,7 +57,6 @@ function replaceWithSearch(){
             $(this).parent().replaceWith(searchWrapper);
             $("#searchbox").css("width", width);
             $("#searchbox").css("height", height);
-            // $('#search-bar').remove()
             if (document.URL.indexOf("search?s=") == -1){
                 document.getElementById("searchbox").focus();
         }
@@ -177,6 +112,13 @@ function paginate(element){
 }
 
 function moveFilterClasses(){
+    /**
+    * Keeps all of the classes related to filters on the proper DOM elements on update
+    *
+    * We are indicating current filter by assigning a class to the element in the DOM.
+    * This function makes sure that these classes stay on the correct elements.
+    */
+
     $("._currentFilter").removeClass("_currentFilter");
     if (document.location.href.match(/filter=\w+/)){
         var currentFilter = document.location.href.match(/filter=(\w+)/)[1];
@@ -189,6 +131,13 @@ function moveFilterClasses(){
 }
 
 function changeFilter(){
+    /**
+    * Changes the filter get parameter in the URL and does a redirect
+    *
+    * This is hacky and I don't like it, but I don't know how to change it
+    * Basically this is doing a regex change of the GET param found in the URL.
+    */
+
     var newFilter = $(this).attr("id");
     var newUrl = "";
     if (document.location.href.match(/filter=\w+/)){

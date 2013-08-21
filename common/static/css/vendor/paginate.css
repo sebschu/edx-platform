@@ -71,9 +71,8 @@ ul.jPag-pages li span.jPag-previous-img{
         width:10px;
 
 }
-ul.jPag-pages li span.jPag-next,
-ul.jPag-pages li span.jPag-next-img{
-    margin:2px 2px 2px 0px;
+.jPag-next{
+    margin:2px 2px 2px 0;
     font-size:12px;
     font-weight:bold;
     width:10px;

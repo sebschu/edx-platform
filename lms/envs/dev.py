@@ -17,9 +17,6 @@ from logsettings import get_logger_config
 
 DEBUG = True
 TEMPLATE_DEBUG = True
-ES_DATABASE = "http://localhost:9200"
-# Tokenizer is currently just for english, but there are a number of alternative tokenizers for other languages
-SENTENCE_TOKENIZER = "tokenizers/punkt/english.pickle"
 
 MITX_FEATURES['DISABLE_START_DATES'] = True
 MITX_FEATURES['ENABLE_SQL_TRACKING_LOGS'] = True

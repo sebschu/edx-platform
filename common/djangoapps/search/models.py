@@ -8,24 +8,30 @@ import string
 from django.conf import settings
 import nltk
 from nltk.stem.porter import PorterStemmer
+from guess_language import guessLanguageName
+import logging
 
 import search.sorting
 from xmodule.modulestore import Location
 
+log = logging.getLogger(__name__)
 
-class SearchResults:
+class SearchResults(object):
     """
     This is a collection of all search results to a query.
 
-    In addition to extending all of the standard collection methods (__len__, __getitem__, etc...)
-    this lets you use custom sorts and filters on the included search results.
+    It will automatically sort itself according to a sort parameter passed in as a kwarg.
+    The sort method should be added to search.sorting. The existing sort methods should be
+    decent for outlining how a sort works.
     """
 
     def __init__(self, response, **kwargs):
         """kwargs should be the GET parameters from the original search request
         filters needs to be a dictionary that maps fields to allowed values"""
         raw_results = json.loads(response.content).get("hits", {"hits": []})["hits"]
-        self.query = " ".join(kwargs.get("s", ""))
+        print kwargs
+        self.query = kwargs.get("s", "")
+        log.debug(self.query)
         if not self.query:
             self.entries = []
         else:
@@ -46,7 +52,7 @@ class SearchResults:
             return [entry for entry in self.entries if entry.category == category]
 
 
-class SearchResult:
+class SearchResult(object):
     """
     A single element from the Search Results collection
     """
@@ -60,7 +66,7 @@ class SearchResult:
             self.thumbnail = _get_content_url(self.data, self.data["thumbnail"])
         else:
             self.thumbnail = self.data["thumbnail"]
-        self.snippets = _snippet_generator(self.data["searchable_text"], query)
+        self.snippets = _snippet_generator(self.data["searchable_text"], query[0])
 
 
 def _get_content_url(data, static_url):
@@ -72,10 +78,9 @@ def _get_content_url(data, static_url):
 
     base_url = "/c4x/%s/%s/asset" % (json.loads(data["id"])["org"], json.loads(data["id"])["course"])
     addendum = static_url.replace("/static/", "")
-    addendum.replace("/", "_")
     current = "/".join([base_url, addendum])
     substring = current[current.find("images/"):].replace("/", "_")
-    substring = current[:current.find("images/")] + substring
+    substring = current[:current.find("/images")] + "/" + substring
     return substring
 
 
@@ -98,13 +103,28 @@ def _snippet_generator(transcript, query, soft_max=50, word_margin=25):
 
     The word margin is the maximum number of words past the soft max we allow the snippet to go. This might
     result in truncated snippets.
+
+    For sentence tokenization, we allow a setting, if it is set then we will just use that tokenizer.
+    Otherwise we will try to guess the language of the transcript and use the appropriate punkt tokenizer.
+    If that fails, or we don't have an appropriate tokenizer we will just assume that periods are appropriate
+    sentence delimiters, and if they are things work without condition. Otherwise this tokenizer will just
+    start from the beginning of the transcript.
     """
 
-    punkt = nltk.data.load(settings.SENTENCE_TOKENIZER)
-    sentences = punkt.tokenize(transcript)
+    if settings.SENTENCE_TOKENIZER and settings.SENTENCE_TOKENIZER.lower() != "detect":
+        punkt = nltk.data.load(settings.SENTENCE_TOKENIZER)
+        sentences = punkt.tokenize(transcript)
+    else:
+        language = guessLanguageName(transcript).lower()
+        try:
+            punkt = nltk.data.load('tokenizers/punkt/%s.pickle' % language)
+            sentences = punkt.tokenize(transcript)
+        except LookupError:
+            sentences = transcript.split(".")
+
     query_set = set([_clean(word) for word in query.split()])
-    sentence_stem_set = lambda sentence: set([_clean(word) for word in sentence.split()])
-    stem_match = lambda sentence: bool(query_set.intersection(sentence_stem_set(sentence)))
+    get_sentence_stem_set = lambda sentence: set([_clean(word) for word in sentence.split()])
+    stem_match = lambda sentence: bool(query_set.intersection(get_sentence_stem_set(sentence)))
     snippet_start = next((i for i, sentence in enumerate(sentences) if stem_match(sentence)), 0)
     response = ""
     for sentence in sentences[snippet_start:]:
@@ -119,7 +139,7 @@ def _snippet_generator(transcript, query, soft_max=50, word_margin=25):
 
 def _clean(term):
     """
-    Returns a standardizes or "cleaned" version of the term
+    Returns a standardized or "cleaned" version of the term
 
     Specifically casts to lowercase, removes punctuation, and stems.
     """
@@ -139,7 +159,7 @@ def _highlight_matches(query, response):
     """
 
     query_set = set([_clean(word) for word in query.split()])
-    wrap = lambda word: "<b class=highlight>%s</b> " % word
+    wrap = lambda word: '<b class="highlight">%s</b> ' % word
     return " ".join([wrap(word) if _clean(word) in query_set else word for word in response.split()])
 
 
