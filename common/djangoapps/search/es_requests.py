@@ -10,12 +10,24 @@ from itertools import chain
 
 import json
 import requests
+import lxml.html
 from requests.exceptions import RequestException
 from django.conf import settings
 from pymongo import MongoClient
 
 log = logging.getLogger(__name__)
 MONGO_COURSE_CACHE = {}
+
+"""
+For ElasticSearch's bulk indexing we define a chunk size which is how many documents we will send at once.
+
+The current number is arbitrary, but the goal is to reduce the number of network requests, and stay robust
+against having a single malformed field.
+
+10 is a pretty decent middle ground.
+"""
+
+CHUNK_SIZE = 10
 
 
 def flaky_request(method, url, attempts=2, **kwargs):
@@ -31,7 +43,7 @@ def flaky_request(method, url, attempts=2, **kwargs):
     return None
 
 
-class NoSearchableTextException(Exception):
+class MalformedDataException(Exception):
     """
     Basic Exception raised whenever searchable text cannot be found for an object
     """
@@ -167,17 +179,21 @@ class MongoIndexer(object):
         data = video_module.get("definition", {}).get("data", "")
         if isinstance(data, dict):
             data = data.get("data", "")
-        uuids = data.split(",")
-        # Videos with a single speed still include commas. If a speed is completely lacking
-        # uuids will only be of length 1, but that seems to be the only case.
-        if len(uuids) == 1:  # Some videos are just left over demos without links
-            return None
-        # The colon is kind of a hack to make sure there will always be a second element since
-        # some entries don't have a second entry
-        # Example: <video youtube="1.0:uuid,1.50, someother_metadata"/>
-        speed_map = {(entry + ":").split(":")[0]: (entry + ":").split(":")[1] for entry in uuids}
-        uuid = [value for key, value in speed_map.items() if "1.0" in key][0]
-        return uuid
+        if "1.0" in data:
+            uuids = data.split(",")
+            # In the case that we get a value that has any extra information past its closing
+            # quotation, it should be stripped to ensure a valid uuid
+            subtract_suffix = lambda word: word[:word.rfind("\"")] if "\"" in word else word
+            # The colon is kind of a hack to make sure there will always be a second element since
+            # some entries don't have a second entry
+            # Example: <video youtube="1.0:uuid,1.50, someother_metadata"/>
+            speed_map = {(entry + ":").split(":")[0]: (entry + ":").split(":")[1] for entry in uuids}
+            uuid = [subtract_suffix(value) for key, value in speed_map.items() if "1.0" in key]
+            if not uuid:
+                raise MalformedDataException
+            return uuid[0]
+        else:
+            raise MalformedDataException
 
     def _get_thumbnail_from_video_module(self, video_module):
         """
@@ -204,10 +220,10 @@ class MongoIndexer(object):
         Otherwise there will be no thumbnail for the problem
         """
 
-        img_src_pattern = r"<img[^>]+src=\"([^\"]+)\""
-        first_image = re.search(img_src_pattern, html, re.DOTALL)
-        if first_image is not None:
-            return first_image.group(1)
+        html_document = lxml.html.fromstring(html)
+        images = html_document.cssselect('img')
+        if len(images) > 0:
+            return images[0].attrib['src']
         else:
             return ""
 
@@ -219,19 +235,18 @@ class MongoIndexer(object):
         """
 
         data = mongo_element["definition"]["data"]
-        # Grabs all text in paragraph tags. Explanation is a header that appears a lot, so it's thrown out.
-        paragraphs = " ".join([text for text in re.findall(r"<p>(.*?)</p>", data)])
-        paragraphs += " "
+        # Grabs all text in paragraph tags.
+        paragraphs = [text for text in re.findall(r"<p>(.*?)</p>", data)]
         # Grabs all text between text tags, which is the most common container after paragraph tags.
-        paragraphs += " ".join([text for text in re.findall(r"<text>(.*?)</text>", data)])
+        text_groups = [text for text in re.findall(r"<text>(.*?)</text>", data)]
+        full_text = "%s %s" % (" ".join(paragraphs), " ".join(text_groups))
         # This gets rid of things like latex strings and other non-human readable escaped passages
-        cleaned_text = re.sub(r"\\(.*?\\)", "", paragraphs).replace("\\", "")
+        cleaned_text = re.sub(r"\\(.*?\\)", "", full_text).replace("\\", "")
         # Removes all lingering tags
         remove_tags = re.sub(r"<[a-zA-Z0-9/\.\= \"\'_-]+>", "", cleaned_text)
-        if not remove_tags:
-            raise NoSearchableTextException
-        else:
-            return remove_tags
+        if not remove_tags.strip():
+            raise MalformedDataException
+        return remove_tags
 
     def _find_transcript_for_video_module(self, video_module):
         """
@@ -244,17 +259,14 @@ class MongoIndexer(object):
         if isinstance(data, dict):  # For some reason there are nested versions
             data = data.get("data", "")
         if isinstance(data, unicode) is False:  # for example videos
-            raise NoSearchableTextException
+            raise MalformedDataException
         uuid = self._get_uuid_from_video_module(video_module)
-        if uuid is None:
-            raise NoSearchableTextException
-        else:
-            name_pattern = re.compile(".*" + uuid + ".*")
+        name_pattern = re.compile(".*" + uuid + ".*")
         chunk = (
             self._chunk_collection.find_one({"files_id.name": name_pattern})
         )
         if chunk is None:
-            raise NoSearchableTextException
+            raise MalformedDataException
         else:
             try:
                 chunk_data = chunk["data"].decode('utf-8')
@@ -263,7 +275,7 @@ class MongoIndexer(object):
                     # This is an obscure, barely documented occurance where apple broke tarballs
                     # and decided to shove error messages into tar metadata which causes this.
                     # https://discussions.apple.com/thread/3145071?start=0&tstart=0
-                    raise NoSearchableTextException
+                    raise MalformedDataException
                 else:
                     try:
                         return " ".join(filter(None, json.loads(chunk_data)["text"]))
@@ -271,7 +283,7 @@ class MongoIndexer(object):
                         log.error("Transcript for: " + uuid + " is invalid")
                         return chunk_data
             except UnicodeError:
-                raise NoSearchableTextException
+                raise MalformedDataException
 
     def _get_searchable_text(self, mongo_module, type_):
         """
@@ -282,6 +294,9 @@ class MongoIndexer(object):
             return self._get_searchable_text_from_problem_data(mongo_module)
         elif type_.lower() == "transcript":
             return self._find_transcript_for_video_module(mongo_module)
+        else:
+            log.error("%s is not a recognized type" % type_)
+            raise NotImplementedError
 
     def _get_thumbnail(self, mongo_module, type_):
         """
@@ -291,10 +306,12 @@ class MongoIndexer(object):
         """
 
         if type_.lower() == "problem":
-            thumbnail = self._get_thumbnail_from_html(mongo_module["definition"]["data"])
+            return self._get_thumbnail_from_html(mongo_module["definition"]["data"])
         elif type_.lower() == "transcript":
-            thumbnail = self._get_thumbnail_from_video_module(mongo_module)
-        return thumbnail
+            return self._get_thumbnail_from_video_module(mongo_module)
+        else:
+            log.error("%s is not a recognized type" % type_)
+            raise NotImplementedError
 
     def _get_full_dict(self, mongo_module, type_):
         """
@@ -337,7 +354,7 @@ class MongoIndexer(object):
         # Pymongo's cursors are a little finnicky, so this is just explicitly casting it to a standard generator
         return (entry for entry in chain(cursor))
 
-    def index_course(self, course, chunk_size=10):
+    def index_course(self, course):
         """
         Indexes all of the searchable content for a course
         """
@@ -347,7 +364,6 @@ class MongoIndexer(object):
         index_string = ""
         error_string = ""
         for item in cursor:
-            counter += 1
             category = item["_id"]["category"].lower().strip()
             data = {}
             index = ""
@@ -360,11 +376,12 @@ class MongoIndexer(object):
                     index = "problem-index"
                 else:
                     continue
-            except NoSearchableTextException:
+            except MalformedDataException:
                 continue
             index_string += self._get_bulk_index_item(index, data)
             error_string += item["_id"]["name"] + "\n"
-            if counter % chunk_size == 0 and counter > 1:
+            counter += 1
+            if counter % CHUNK_SIZE == 0:
                 index_status_code = self._es_instance.bulk_index(index_string).status_code
                 if index_status_code == 400:
                     log.error("The following bulk index failed: %s" % error_string)

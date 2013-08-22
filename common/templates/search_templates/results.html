@@ -1,67 +1,68 @@
 <%inherit file="/main.html" />
 <%block name="bodyclass">${course.css_class}</%block>
-<%include file="/courseware/course_navigation.html" args="active_page='search'" />
 <%namespace name='static' file='/static_content.html'/>
 <%block name="headextra">
     <%static:css group='course'/>
+    <%namespace name='static' file='/static_content.html'/>
+    <link href="${static.url('css/vendor/simplePagination/simplePagination.css')}" rel="stylesheet" type="text/css" />
+    <script type="text/javascript" src="${static.url('js/vendor/flaviusmatis-simplePagination.js-7cefeb7/jquery.simplePagination.js')}"></script>
     <script type="text/javascript">
         var old_query = "${ old_query }";
+        var search_results = '${ to_string(search_results)}';
+        var current_filter = '${ current_filter }';
+        var page = '${ page }';
     </script>
-    <%namespace name='static' file='/static_content.html'/>
-    <link href="${static.url('css/vendor/paginate.css')}" rel="stylesheet" type="text/css"></link>
-    <script type="text/javascript" src="${static.url('js/vendor/jquery.paginate.js')}"></script>
-    <script type="text/javascript" src="${static.url('js/search.js')}"></script>
-    <link href="${static.url('css/search.css')}" rel="stylesheet" type="text/css"></link>
 </%block>
+<%include file="/courseware/course_navigation.html" args="active_page='search'" />
 
 <div class="container">
     <div class="search-results">
         <div id="menu-container">
-            <ul class="menu">
+            <ul class="filter-menu">
             <li id="all" class="header-bar">
                 <span class="filter-item"></span>
                 Courseware
-                <span class="count">${ len(data.entries) }</span>
+                <span class="count">${ search_results["all"]["total"] }</span>
                 </span>
             </li>
             <li id="video" class="body-bar">
                 <span class="filter-item">
                 <span class="video-image"></span>
                 Transcripts
-                <span class="count">${ len(data.get_category("video"))}</span>
+                <span class="count">${ search_results["video"]["total"] }</span>
                 </span>
             </li>
             <li id="problem" class="body-bar">
                 <span class="filter-item">
                 <span class="problem-image"></span>
                 Problems
-                <span class="count">${ len(data.get_category("problem"))}</span>
+                <span class="count">${ search_results["problem"]["total"] }</span>
                 </span>
             </li>
             </ul>
         </div>
-        % if len(data.entries) > 0:
+        % if search_results[current_filter]["total"] > 0:
             <div class="search-container">
                 <p class="search-context">
-                    Showing ${len(data.entries)} results in courseware for ${course_id}
+                    Showing ${search_results[current_filter]["total"]} results in courseware for ${course_id.split("/")[1]}
                 </p>
                 <p class="pagination-stub" style="text-align:center;"></p>
-            % for datum in data.get_category(filter)[result_start:result_end]:
+            % for result in search_results[current_filter]["results"][page]:
             <section>
-                <a href=${datum.url}>
+                <a href=${result["url"]}>
                     <div class="result-container">
                         <div class="result-header">
-                        <span class="${datum.category}-image"/>
-                            <h1 class="result-title">${datum.data['display_name']}</h1>
+                        <span class="${result['category']}-image"/>
+                            <h1 class="result-title">${result["data"]['display_name']}</h1>
                         </div>
                         <div class="result-body">
                                 <div class="thumbnail-wrapper">
                                     <div class="result-thumbnail">
-                                    % if datum.thumbnail:
-                                        % if datum.category == "problem":
-                                            <img class="thumbnail" src='${static.url(datum.thumbnail)}' alt="${datum.data['display_name']}">
+                                    % if result.get("thumbnail", False):
+                                        % if result['category'] == "problem":
+                                            <img class="thumbnail" src='${result["thumbnail"]}' alt="${result['data']['display_name']}">
                                         % else: 
-                                           <img class="thumbnail" src="${datum.thumbnail}" alt="${datum.data['display_name']}">
+                                           <img class="thumbnail" src="${result['thumbnail']}" alt="${result['data']['display_name']}">
                                         % endif
                                     % else:
                                         <img class="thumbnail">
@@ -70,7 +71,7 @@
                                 </div>
                             <div class="result-snippets">
                                 <div class="snippet">
-                                    ${datum.snippets}
+                                    ${result['snippets']}
                                 </div>
                             </div>
                         </div>
@@ -84,3 +85,12 @@
         % endif
     </div>
 </div>
+
+
+<%!
+    import json
+    import re
+
+    def to_string(context):
+        return re.escape(json.dumps(context))
+%>

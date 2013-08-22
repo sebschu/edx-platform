@@ -7,7 +7,8 @@ import string
 
 from django.conf import settings
 import nltk
-from nltk.stem.porter import PorterStemmer
+import nltk.stem.snowball as snowball
+from nltk.stem import RegexpStemmer
 from guess_language import guessLanguageName
 import logging
 
@@ -15,6 +16,21 @@ import search.sorting
 from xmodule.modulestore import Location
 
 log = logging.getLogger(__name__)
+
+"""
+The soft_max is the number of words at which we stop actively indexing (normally the snippeting works
+on full sentences, so when the soft_max is reached the snippet will stop at the end of that sentence.)
+"""
+
+SOFT_MAX = 50
+
+"""
+The word margin is the maximum number of words past the soft max we allow the snippet to go. This might
+result in truncated snippets.
+"""
+
+WORD_MARGIN = 25
+
 
 class SearchResults(object):
     """
@@ -26,12 +42,12 @@ class SearchResults(object):
     """
 
     def __init__(self, response, **kwargs):
-        """kwargs should be the GET parameters from the original search request
-        filters needs to be a dictionary that maps fields to allowed values"""
+        """
+        kwargs should be the GET parameters from the original search request
+        filters needs to be a dictionary that maps fields to allowed values
+        """
         raw_results = json.loads(response.content).get("hits", {"hits": []})["hits"]
-        print kwargs
         self.query = kwargs.get("s", "")
-        log.debug(self.query)
         if not self.query:
             self.entries = []
         else:
@@ -39,7 +55,7 @@ class SearchResults(object):
             sort = kwargs.get("sort", "relevance")
             self.entries = search.sorting.sort(entries, sort)
 
-    def get_category(self, category="all"):
+    def get_category(self, category):
         """
         Returns a subset of all results that match the given category
 
@@ -50,6 +66,17 @@ class SearchResults(object):
             return self.entries
         else:
             return [entry for entry in self.entries if entry.category == category]
+
+    def get_page(self, page_number, category, results_per_page):
+        """
+        Returns the specific results of a given page in the set of search results with the given category.
+
+        Casts results to dictionary to ensure that Javascript will be able to intepret this without any failings.
+        """
+
+        results = self.get_category(category)
+        sliced_results = results[((page_number - 1) * results_per_page): page_number * results_per_page]
+        return [result.__dict__ for result in sliced_results]
 
 
 class SearchResult(object):
@@ -66,7 +93,8 @@ class SearchResult(object):
             self.thumbnail = _get_content_url(self.data, self.data["thumbnail"])
         else:
             self.thumbnail = self.data["thumbnail"]
-        self.snippets = _snippet_generator(self.data["searchable_text"], query[0])
+        language = guessLanguageName(self.data["searchable_text"]).lower()
+        self.snippets = _snippet_generator(self.data["searchable_text"], query[0], language)
 
 
 def _get_content_url(data, static_url):
@@ -84,7 +112,7 @@ def _get_content_url(data, static_url):
     return substring
 
 
-def _snippet_generator(transcript, query, soft_max=50, word_margin=25):
+def _snippet_generator(transcript, query, language):
     """
     This returns a relevant snippet from a given search item with direct matches highlighted.
 
@@ -98,12 +126,6 @@ def _snippet_generator(transcript, query, soft_max=50, word_margin=25):
 
     The bold flag determines whether or not the matching terms should be wrapped in a tag.
 
-    The soft_max is the number of words at which we stop actively indexing (normally the snippeting works
-    on full sentences, so when the soft_max is reached the snippet will stop at the end of that sentence.)
-
-    The word margin is the maximum number of words past the soft max we allow the snippet to go. This might
-    result in truncated snippets.
-
     For sentence tokenization, we allow a setting, if it is set then we will just use that tokenizer.
     Otherwise we will try to guess the language of the transcript and use the appropriate punkt tokenizer.
     If that fails, or we don't have an appropriate tokenizer we will just assume that periods are appropriate
@@ -115,36 +137,45 @@ def _snippet_generator(transcript, query, soft_max=50, word_margin=25):
         punkt = nltk.data.load(settings.SENTENCE_TOKENIZER)
         sentences = punkt.tokenize(transcript)
     else:
-        language = guessLanguageName(transcript).lower()
         try:
             punkt = nltk.data.load('tokenizers/punkt/%s.pickle' % language)
             sentences = punkt.tokenize(transcript)
         except LookupError:
             sentences = transcript.split(".")
 
-    query_set = set([_clean(word) for word in query.split()])
-    get_sentence_stem_set = lambda sentence: set([_clean(word) for word in sentence.split()])
+    query_set = set([_clean(word, language) for word in query.split()])
+    get_sentence_stem_set = lambda sentence: set([_clean(word, language) for word in sentence.split()])
     stem_match = lambda sentence: bool(query_set.intersection(get_sentence_stem_set(sentence)))
     snippet_start = next((i for i, sentence in enumerate(sentences) if stem_match(sentence)), 0)
     response = ""
     for sentence in sentences[snippet_start:]:
-        if (len(response.split()) + len(sentence.split()) < soft_max):
+        if (len(response.split()) + len(sentence.split()) < SOFT_MAX):
             response += " " + sentence
         else:
-            response += " " + " ".join(sentence.split()[:word_margin])
+            response += " " + " ".join(sentence.split()[:WORD_MARGIN])
             break
-    response = _highlight_matches(query, response)
+    response = _highlight_matches(query, response, language)
     return response
 
 
-def _clean(term):
+def _clean(term, language):
     """
     Returns a standardized or "cleaned" version of the term
 
     Specifically casts to lowercase, removes punctuation, and stems.
+
+    stemming is either defined in settings, or discovered through the implied
+    language of the transcript
     """
 
-    stemmer = PorterStemmer()
+    if settings.STEMMER and settings.STEMMER.lower() != "detect":
+        stemmer = getattr(snowball, "%sStemmer" % settings.STEMMER.title())()
+    else:
+        try:
+            stemmer = getattr(snowball, "%sStemmer" % language.title())()
+        except AttributeError:
+            # Blank stemmer to keep things parallel and sensible.
+            stemmer = RegexpStemmer("")
     if isinstance(term, unicode):
         punctuation_map = {ord(char): None for char in string.punctuation}
         rinsed_term = term.translate(punctuation_map)
@@ -153,14 +184,14 @@ def _clean(term):
     return stemmer.stem(rinsed_term.lower())
 
 
-def _highlight_matches(query, response):
+def _highlight_matches(query, response, language):
     """
     Highlights all direct matches within given snippet
     """
 
-    query_set = set([_clean(word) for word in query.split()])
+    query_set = set([_clean(word, language) for word in query.split()])
     wrap = lambda word: '<b class="highlight">%s</b> ' % word
-    return " ".join([wrap(word) if _clean(word) in query_set else word for word in response.split()])
+    return " ".join([wrap(word) if (_clean(word, language) in query_set) else (word) for word in response.split()])
 
 
 def _return_jump_to_url(entry):

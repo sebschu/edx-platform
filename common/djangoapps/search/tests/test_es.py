@@ -2,25 +2,51 @@
 Tests for the ElasticDatabase class in es_requests
 """
 
-from django.test import TestCase
-import requests
-from search.es_requests import ElasticDatabase, flaky_request
 import json
 import time
 import os
+
+from django.test import TestCase
+import requests
 from pyfuzz.generator import random_regex
+from django.test.utils import override_settings
+
+from search.es_requests import ElasticDatabase, flaky_request
+from mocks import StubServer, StubRequestHandler
 
 
+class PersonalServer(StubServer):
+    """
+    SubServer implementation for ElasticSearch mocking
+    """
+
+    def log_request(self, request_type, path, content):
+        self.requests.append(self.request(request_type, path, content))
+        if request_type == "POST":
+            if path.endswith("/test-index/test-type/"):
+                self.status_code = 201
+            elif path.endswith("_bulk"):
+                self.status_code = 200
+        if request_type == "HEAD":
+            if path.endswith("/test-index/test-type"):
+                self.status_code = 200
+            else:
+                self.status_code = 404
+
+
+@override_settings(ES_DATABASE="http://127.0.0.1:9203")
 class EsTest(TestCase):
     """
     Test suite for ElasticDatabase class
     """
 
     def setUp(self):
-        es_instance = "http://localhost:9200"
+        self.stub = PersonalServer(StubRequestHandler, 9203)
+        es_instance = "http://127.0.0.1:9203"
         # Making sure that there is actually a running es_instance before testing
         database_request = requests.get(es_instance)
         self.assertEqual(database_request.status_code, 200)
+        requests.put(es_instance)
         self.elastic_search = ElasticDatabase("common/djangoapps/search/tests/test_settings.json")
         index_request = setup_index(self.elastic_search.url, "test-index", self.elastic_search.index_settings)
         self.assertEqual(index_request.status_code, 200)
@@ -58,6 +84,7 @@ class EsTest(TestCase):
 
     def tearDown(self):
         delete_index(self.elastic_search.url, "test-index")
+        self.stub.stop()
 
 
 def has_type(url, index, type_):
@@ -86,7 +113,7 @@ def setup_type(url, index, type_, json_mapping):
     full_url = "/".join([url, index, type_]) + "/"
     with open(json_mapping) as source:
         dictionary = json.load(source)
-    return flaky_request("post", full_url, data=json.dumps(dictionary))
+    return requests.post(full_url, data=json.dumps(dictionary))
 
 
 def setup_index(url, index, settings):

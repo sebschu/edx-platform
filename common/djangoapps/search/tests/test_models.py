@@ -5,6 +5,7 @@ This is the testing suite for the models within the search module
 """
 
 import json
+import re
 from django.test import TestCase
 from django.test.utils import override_settings
 from pyfuzz.generator import random_regex
@@ -12,20 +13,20 @@ from pyfuzz.generator import random_regex
 from search.models import SearchResults, SearchResult
 from test_mongo import dummy_document
 
-TEST_TEXT = "Lorem ipsum dolor sit amet, consectetur adipisicing elit, \
-            sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. \
-            Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris \
-            nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in \
-            reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. \
-            Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia \
-            deserunt mollit anim id est laborum."
+TEST_TEXT = """Lorem ipsum dolor sit amet, consectetur adipisicing elit,
+            sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris
+            nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in
+            reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+            Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia
+            deserunt mollit anim id est laborum."""
 
-TEST_GREEK = u"Σο οι δεύτερον απόσταση απαγωγής ολόκληρο πω. Είχε γιου βάση όλα \
-             νου στην όπου σούκ. Ανάλυσης νεόφερτο ας εκ νεανικής τεκμήρια νε θα \
-             εξαιτίας δείχνουν. Τη αν ιι έν συμπαίκτης παράδειγμα υποτίθεται τελευταίες. \
-             Μου στίχους σαν γίνεται χιούμορ πως αρχίζει κατ σφυγμός συνθήκη. Αναγνώστη \
-             προτιμούν σύγχρονες τη κι να κινήματος. Φίλτρο στήθος πει ατο κεί τέλους. \
-             Χωρική θέσεις δε χτένας ίμερας έρευνα έμμεση αρ. Προκύψει επίλογοι ιππασίας σαν."
+TEST_GREEK = u"""Σο οι δεύτερον απόσταση απαγωγής ολόκληρο πω. Είχε γιου βάση όλα
+             νου στην όπου σούκ. Ανάλυσης νεόφερτο ας εκ νεανικής τεκμήρια νε θα
+             εξαιτίας δείχνουν. Τη αν ιι έν συμπαίκτης παράδειγμα υποτίθεται τελευταίες.
+             Μου στίχους σαν γίνεται χιούμορ πως αρχίζει κατ σφυγμός συνθήκη. Αναγνώστη
+             προτιμούν σύγχρονες τη κι να κινήματος. Φίλτρο στήθος πει ατο κεί τέλους.
+             Χωρική θέσεις δε χτένας ίμερας έρευνα έμμεση αρ. Προκύψει επίλογοι ιππασίας σαν."""
 
 
 def dummy_entry(score, searchable_text=None):
@@ -56,10 +57,15 @@ class FakeResponse(object):
 
 
 @override_settings(SENTENCE_TOKENIZER="tokenizers/punkt/english.pickle")
+@override_settings(STEMMER="ENGLISH")
 class ModelTest(TestCase):
     """
     Tests SearchResults and SearchResult models as well as associated helper functions
     """
+
+    def test_search_result_init(self):
+        check = SearchResult(dummy_entry(1.0), ["fake-query"])
+        self.assertTrue(bool(re.match(r"^[a-zA-Z0-9]+$", check.snippets)))
 
     def test_snippet_generation(self):
         document = dummy_entry(1.0, TEST_TEXT)
@@ -70,12 +76,13 @@ class ModelTest(TestCase):
         self.assertTrue('<b class="highlight">nostrud</b>' in result.snippets)
 
     @override_settings(SENTENCE_TOKENIZER="DETECT")
+    @override_settings(STEMMER="DETECT")
     def test_language_detection(self):
         document = dummy_entry(1.0, TEST_GREEK)
         result = SearchResult(document, [u"νου στην όπου"])
         self.assertTrue(result.snippets.startswith(u"Είχε γιου"))
 
-    def test_search_result(self):
+    def test_search_results(self):
         scores = [1.0, 5.2, 2.0, 123.2]
         hits = [dummy_entry(score) for score in scores]
         full_return = FakeResponse({"hits": {"hits": hits}})

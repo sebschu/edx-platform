@@ -1,7 +1,7 @@
 function indexCourses(){
     $("body").css("cursor", "progress");
     var course = "";
-    var url = "http://" + window.location.host + "/index";
+    var url = "/index";
     var courseTitle = $("#index-courses").eq(0).attr("data-course");
     $.ajax({
         type: "POST",
@@ -17,6 +17,5 @@ function success(){
 }
 
 $(document).ready(function() {
-    $("#index-courses").unbind();
     $("#index-courses").eq(0).bind("click", indexCourses);
 });

@@ -114,7 +114,7 @@ a.search-bar{
     margin: 3% 0 2.5% 1.5%;
 }
 
-.menu{
+.filter-menu{
     background: #f7f7f8;
     border-radius: 2px;
     border: 1px solid #d8d8d8;
@@ -175,27 +175,16 @@ li:hover{
     color: #9f9f9f;
 }
 
-.jPag-pages li a{
-    border-radius: 2px;
-}
-
-.jPag-first{
-    border-radius: 2px;
-}
-
-.jPag-last{
-    border-radius: 2px;
-}
-
-.pagination-stub{
-    text-align:center;
-}
-
-.jPaginate div{
-    margin-left: 200px;
-}
-
 .search-context{
     color: #d0d0d0;
     text-align:center;
+}
+
+.pagination-stub{
+    margin-left: 11em;
+}
+
+.pagination-stub ul a{
+    line-height:24px;
+    text-align: center;
 }

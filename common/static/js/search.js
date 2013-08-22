@@ -74,41 +74,19 @@ function updateOldSearch(){
 
 function paginate(element){
     var currentResults = parseInt($("._currentFilter span.count").text(), 10);
-    var pages = Math.ceil(currentResults/10.0);
-    var startPage = 1;
-    if (document.location.href.match(/page=\d+/)){
-        startPage = document.location.href.match(/page=(\d+)/)[1];
-    }
-    $(element).paginate({
-        count       : pages,
-        start       : startPage,
-        display     : 5,
-        border                  : true,
-        border_color            : '#999',
-        text_color              : '#999',
-        background_color        : '#eee',
-        border_hover_color      : '#ccc',
-        text_hover_color        : '#999',
-        background_hover_color  : '#fff',
-        images                  : false,
-        mouse                   : 'press',
-        onChange                : function(page){
-            var newPage = $(".jPag-current").text();
-            if (document.location.href.match(/page=\d+/)){
-                window.location.href = document.location.href.replace(/page=\d+/, "page=" + newPage);
-            } else {
-                window.location.href = document.location.href + "&page=" + newPage;
-            }
+    $(element).pagination({
+        items           : currentResults,
+        itemsOnPage     : 10,
+        currentPage     : page,
+        displayedPages  : 3,
+        edges           : 2,
+        cssStyle        : "light-theme",
+        onPageClick     : function(pageNumber, event){
+            console.log("Hooray!");
+            event.preventDefault();
+            replaceCurrentContent(current_filter, pageNumber);
         }
     });
-    var lastButton = $("div.jPag-control-front");
-    var selectorDiv = $("p.jPaginate div:not([class])");
-    var currentLeft = parseInt(lastButton.css("left"),10);
-    var adjustment = parseInt(selectorDiv.css("margin-left"), 10);
-    var currentWidth = parseInt(selectorDiv.css("width"), 10);
-    selectorDiv.css("width", currentWidth-adjustment);
-    lastButton.css("left", currentLeft-adjustment);
-    $("ul.jPag-pages").width($("ul.jPag-pages").width()+1);
 }
 
 function moveFilterClasses(){
@@ -130,31 +108,111 @@ function moveFilterClasses(){
     }
 }
 
+function getSearchResults(resultsObject, filter, current_page){
+    /**
+    * Returns relevant portion of search results
+    * Assume that results Object will just be a parsed version of the
+    * search_results variable passed in from the template.
+    */
+
+    return resultsObject[filter].results[current_page];
+}
+
+function renderSearchResult(searchResult){
+    /**
+    * Renders the given search result into a contained section element
+    */
+
+    var resultTitle = document.createElement("h1");
+    resultTitle.className = "result-title";
+    resultTitle.innerHTML = searchResult.data.display_name;
+
+    var category = document.createElement("span");
+    category.className = searchResult.category + "-image";
+
+    var resultHeader = document.createElement("div");
+    resultHeader.className = "result-header";
+    resultHeader.appendChild(category);
+    resultHeader.appendChild(resultTitle);
+
+    var thumbnail = document.createElement("img");
+    thumbnail.className = "thumbnail";
+    if (searchResult.thumbnail !== undefined){
+        thumbnail.src = searchResult.thumbnail;
+        thumbnail.alt = searchResult.data.display_name;
+    }
+
+    var resultThumbnail = document.createElement("div");
+    resultThumbnail.className = "result-thumbnail";
+    resultThumbnail.appendChild(thumbnail);
+
+    var thumbnailWrapper = document.createElement("div");
+    thumbnailWrapper.className = "thumbnail-wrapper";
+    thumbnailWrapper.appendChild(resultThumbnail);
+
+    var snippets = document.createElement("div");
+    snippets.className = "snippet";
+    snippets.innerHTML = searchResult.snippets;
+
+    var resultSnippets = document.createElement("div");
+    resultSnippets.className = "result-snippets";
+    resultSnippets.appendChild(snippets);
+
+    var resultBody = document.createElement("div");
+    resultBody.className = "result-body";
+    resultBody.appendChild(thumbnailWrapper);
+    resultBody.appendChild(resultSnippets);
+
+    var resultContainer = document.createElement("div");
+    resultContainer.className = "result-container";
+    resultContainer.appendChild(resultHeader);
+    resultContainer.appendChild(resultBody);
+
+    var link = document.createElement('a');
+    link.href = searchResult.url;
+    link.appendChild(resultContainer);
+    
+    var section = document.createElement("section");
+    section.appendChild(link);
+    
+    return section;
+
+}
+
+function replaceCurrentContent(filter, current_page){
+    /**
+    * Replaces the current content of search contents
+    */
+
+    var searchResults = jQuery.parseJSON(search_results);
+    var relevantPage = getSearchResults(searchResults, filter, current_page);
+    if (relevantPage !== undefined){
+        $("div.search-container section").remove();
+        for (var i=0; i<relevantPage.length; i++){
+            $("div.search-container").append(renderSearchResult(relevantPage[i]));
+        }
+    }
+    else {
+        var newQueryString = "?s=" + old_query + "&filter=" + filter + "&page=" + current_page;
+        var newUrl = document.location.origin + document.location.pathname + newQueryString;
+        window.location.href = newUrl;
+    }
+}
+
 function changeFilter(){
     /**
     * Changes the filter get parameter in the URL and does a redirect
     *
-    * This is hacky and I don't like it, but I don't know how to change it
-    * Basically this is doing a regex change of the GET param found in the URL.
+    * Assumes that when changing filters the user wants to go back to the first page of results
     */
 
     var newFilter = $(this).attr("id");
-    var newUrl = "";
-    if (document.location.href.match(/filter=\w+/)){
-        newUrl = document.location.href.replace(/filter=\w+/, "filter=" + newFilter);
-    } else {
-        newUrl = document.location.href + "&filter=" + newFilter;
-    }
-    if (newUrl.match(/page=\d+/)){
-        window.location.href = newUrl.replace(/page=\d+/, "page=1");
-    } else {
-        window.location.href = newUrl + "&page=1";
-    }
+    replaceCurrentContent(newFilter, 1);
 }
 
 $(document).ready(function(){
     moveFilterClasses();
-    if (document.URL.indexOf("search?s=") !== -1){
+    if (typeof old_query !== "undefined"){
         updateOldSearch();
     } else {
         $("a.search-bar").bind("click", replaceWithSearch);
@@ -164,6 +222,6 @@ $(document).ready(function(){
         paginate($("p.pagination-stub").eq(0));
     }
 
-    $("ul.menu li").bind("click", changeFilter);
+    $("ul.filter-menu li").bind("click", changeFilter);
 });
 
