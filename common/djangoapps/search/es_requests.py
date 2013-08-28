@@ -84,7 +84,10 @@ class ElasticDatabase(object):
         that should be specified in the application settings file.
         """
 
-        self.url = settings.ES_DATABASE
+        try:
+            self.url = settings.ES_DATABASE
+        except AttributeError:
+            self.url = "http://localhost:9200"
         if settings_file is None:
             current_directory = os.path.dirname(os.path.realpath(__file__))
             settings_file = os.path.join(current_directory, "settings.json")
@@ -130,8 +133,14 @@ class MongoIndexer(object):
         host = settings.MODULESTORE['default']['OPTIONS']['host']
         port = 27017
         client = MongoClient(host, port)
-        content_db = settings.CONTENTSTORE["OPTIONS"]['db']
-        module_db = settings.MODULESTORE['default']['OPTIONS']['db']
+        try:
+            content_db = settings.CONTENTSTORE["OPTIONS"]['db']
+        except AttributeError:
+            content_db = 'xcontent'
+        try:
+            module_db = settings.MODULESTORE['default']['OPTIONS']['db']
+        except AttributeError:
+            module_db = 'xmodule'
         self._chunk_collection = client[content_db]["fs.chunks"]
         self._module_collection = client[module_db]["modulestore"]
         self._es_instance = es_instance

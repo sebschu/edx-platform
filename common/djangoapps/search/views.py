@@ -71,7 +71,10 @@ def _find(request, course_id):
     Method in charge of getting search results and associated metadata
     """
 
-    database = settings.ES_DATABASE
+    try:
+        database = settings.ES_DATABASE
+    except AttributeError:  # If settings has no ES_DATABASE
+        database = "http://localhost:9200"
     query = request.GET.get("s", "*.*")
     full_query_data = \
         {

@@ -12,6 +12,9 @@ class MockCsrfProtection(object):
     Has to be initialized here because the decorators will be applied as soon as a module is imported,
     which sadly means that standard patching doesn't work.
     """
+
+    __name__ = "MockCsrfProtection"
+
     def __init__(self, func):
         self.func = func
 
