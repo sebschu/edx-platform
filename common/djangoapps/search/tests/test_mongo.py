@@ -81,7 +81,7 @@ class MongoTest(TestCase):
         bad_document = {"definition": {"data": "@#@%^%#$afsdkjjl@#!$%"}}
         success = False
         try:
-            bad_check = self.indexer._get_searchable_text_from_problem_data(bad_document)
+            self.indexer._get_searchable_text_from_problem_data(bad_document)
         except MalformedDataException:
             success = True
         self.assertTrue(success)
@@ -96,7 +96,7 @@ class MongoTest(TestCase):
         document = {"definition": {"data": "<video asdfghjkl>"}}
         success = False
         try:
-            image = self.indexer._get_thumbnail_from_video_module(document)
+            self.indexer._get_thumbnail_from_video_module(document)
         except MalformedDataException:
             success = True
         self.assertTrue(success)
@@ -107,16 +107,6 @@ class MongoTest(TestCase):
         image = self.indexer._get_thumbnail_from_video_module(document)
         url = "http://img.youtube.com/vi/dJvsFg10JY/0.jpg"
         self.assertEquals(url, image)
-
-    def test_pdf_thumbnail(self):
-        bad_pseduo_file = StringIO()
-        bad_pdf = random_item("bytes", length=200)
-        bad_pseduo_file.write(bad_pdf)
-        try:
-            self.indexer._get_thumbnail_from_pdf({"data": bad_pseduo_file.getvalue()})
-        except:
-            success = False
-        self.assertFalse(success)
 
     def test_html_thumbnail(self):
         success = True

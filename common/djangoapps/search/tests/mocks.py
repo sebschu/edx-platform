@@ -63,7 +63,7 @@ class StubRequestHandler(BaseHTTPRequestHandler):
     Request handler that mocks Elastic Search
     """
 
-    def do_POST(self):
+    def do_POST(self):  # pylint: disable=C0103
         """
         Handling for a POST request
         """
@@ -71,7 +71,7 @@ class StubRequestHandler(BaseHTTPRequestHandler):
         self.server.log_request('POST', self.path, self.content())
         self._send_server_response()
 
-    def do_GET(self):
+    def do_GET(self):  # pylint: disable=C0103
         """
         Handling for a GET request
         """
@@ -79,7 +79,7 @@ class StubRequestHandler(BaseHTTPRequestHandler):
         self.server.log_request('GET', self.path, self.content())
         self._send_server_response()
 
-    def do_PUT(self):
+    def do_PUT(self):  # pylint: disable=C0103
         """
         Handling for a PUT request
         """
@@ -87,7 +87,7 @@ class StubRequestHandler(BaseHTTPRequestHandler):
         self.server.log_request('PUT', self.path, self.content())
         self._send_server_response()
 
-    def do_HEAD(self):
+    def do_HEAD(self):  # pylint: disable=C0103
         """
         Handling for a HEAD request
         """

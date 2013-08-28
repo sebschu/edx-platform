@@ -304,7 +304,7 @@ class MongoIndexer(object):
         elif type_.lower() == "transcript":
             return self._find_transcript_for_video_module(mongo_module)
         else:
-            log.error("%s is not a recognized type" % type_)
+            log.error("%s is not a recognized type", type_)
             raise NotImplementedError
 
     def _get_thumbnail(self, mongo_module, type_):
@@ -319,7 +319,7 @@ class MongoIndexer(object):
         elif type_.lower() == "transcript":
             return self._get_thumbnail_from_video_module(mongo_module)
         else:
-            log.error("%s is not a recognized type" % type_)
+            log.error("%s is not a recognized type", type_)
             raise NotImplementedError
 
     def _get_full_dict(self, mongo_module, type_):
@@ -393,6 +393,6 @@ class MongoIndexer(object):
             if counter % CHUNK_SIZE == 0:
                 index_status_code = self._es_instance.bulk_index(index_string).status_code
                 if index_status_code == 400:
-                    log.error("The following bulk index failed: %s" % error_string)
+                    log.error("The following bulk index failed: %s", error_string)
                 index_string = ""
                 error_string = ""
