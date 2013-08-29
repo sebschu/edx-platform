@@ -2,7 +2,6 @@
 Test suite for the MongoIndexer class in es_requests
 """
 
-from StringIO import StringIO
 import json
 
 from django.test import TestCase

@@ -87,14 +87,6 @@ class StubRequestHandler(BaseHTTPRequestHandler):
         self.server.log_request('PUT', self.path, self.content())
         self._send_server_response()
 
-    def do_HEAD(self):  # pylint: disable=C0103
-        """
-        Handling for a HEAD request
-        """
-
-        self.server.log_request('HEAD', self.path, self.content())
-        self._send_server_response()
-
     def content(self):
         """
         Returns request content
@@ -112,7 +104,5 @@ class StubRequestHandler(BaseHTTPRequestHandler):
         """
 
         self.send_response(self.server.status_code)
-        for (key, value) in self.server.header_dict.items():
-            self.send_header(key, value)
         self.end_headers()
         self.wfile.write(self.server.content)

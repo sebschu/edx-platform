@@ -33,6 +33,7 @@ class PersonalServer(StubServer):
 
 
 @override_settings(ES_DATABASE="http://127.0.0.1:9203")
+@override_settings(ES_SETTINGS=open("common/djangoapps/search/tests/test_settings.json").read())
 class EsTest(TestCase):
     """
     Test suite for ElasticDatabase class
@@ -43,7 +44,7 @@ class EsTest(TestCase):
         es_instance = "http://127.0.0.1:9203"
         # Making sure that there is actually a running es_instance before testing
         requests.put(es_instance)
-        self.elastic_search = ElasticDatabase("common/djangoapps/search/tests/test_settings.json")
+        self.elastic_search = ElasticDatabase()
         setup_index(self.elastic_search.url, "test-index", self.elastic_search.index_settings)
         setup_type(
             self.elastic_search.url,

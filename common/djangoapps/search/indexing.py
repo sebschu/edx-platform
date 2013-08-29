@@ -75,7 +75,7 @@ class ElasticDatabase(object):
     instance. Additionly there are methods for running basic queries and content indexing.
     """
 
-    def __init__(self, settings_file=None):
+    def __init__(self):
         """
         Instantiates the ElasticDatabase file.
 
@@ -88,12 +88,10 @@ class ElasticDatabase(object):
             self.url = settings.ES_DATABASE
         except AttributeError:
             self.url = "http://localhost:9200"
-        if settings_file is None:
-            current_directory = os.path.dirname(os.path.realpath(__file__))
-            settings_file = os.path.join(current_directory, "settings.json")
-
-        with open(settings_file) as source:
-            self.index_settings = json.load(source)
+        try:
+            self.index_settings = settings.ES_SETTINGS
+        except AttributeError:
+            self.index_settings = '{}'
 
     def index_data(self, index, data, type_, id_):
         """

@@ -7,6 +7,7 @@ SORTING_DICT = {
     "alphabetical": [lambda entry: entry.data.get("display_name", "").lower(), False]
 }
 
+
 def sort(data_list, sorting):
     """
     General sort handler, used by SearchResults model for search sorting
