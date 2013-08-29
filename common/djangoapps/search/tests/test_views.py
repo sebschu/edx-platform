@@ -29,7 +29,7 @@ from django.test.utils import override_settings
 from mock import Mock, patch
 
 import search.views as views
-from search.es_requests import MongoIndexer
+from search.indexing import MongoIndexer
 from mocks import StubServer, StubRequestHandler
 
 

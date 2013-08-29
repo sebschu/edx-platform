@@ -11,7 +11,7 @@ from django.test.utils import override_settings
 from pymongo import MongoClient
 from pyfuzz.generator import random_item
 
-from search.es_requests import MongoIndexer, MalformedDataException
+from search.indexing import MongoIndexer, MalformedDataException
 
 
 def dummy_document(key, values, data_type, **kwargs):

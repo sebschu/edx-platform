@@ -15,7 +15,7 @@ from django_future.csrf import ensure_csrf_cookie
 
 from courseware.courses import get_course_with_access
 from search.models import SearchResults
-from search.es_requests import MongoIndexer
+from search.indexing import MongoIndexer
 
 
 CONTENT_TYPES = set(["transcript", "problem"])
