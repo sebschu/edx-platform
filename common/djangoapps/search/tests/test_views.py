@@ -4,7 +4,6 @@ Basic test for views in search
 
 import django_future.csrf
 
-
 class MockCsrfProtection(object):
     """
     A replacement for django's default csrf protection
@@ -26,6 +25,9 @@ django_future.csrf.ensure_csrf_cookie = MockCsrfProtection
 from django.http import HttpRequest
 from django.test import TestCase
 from django.test.utils import override_settings
+from django.test.client import RequestFactory
+from xmodule.modulestore.tests.factories import CourseFactory
+from django.contrib.auth.models import AnonymousUser
 from mock import Mock, patch
 
 import search.views as views
@@ -92,22 +94,27 @@ class ViewTest(TestCase):
 
     def setUp(self):
         self.stub = PersonalServer(StubRequestHandler, 9203)
+        self.request_factory = RequestFactory()
 
     def test_search_endpoint(self):
         request = HttpRequest()
         request.method = "GET"
-        request.user = "fake-user"
+        request.user = AnonymousUser()
         response = views.search(request, 'fake/course/id')
         self.assertTrue(isinstance(response['search_results']['all'], dict))
         self.assertEqual(response['search_results']['all']['total'], 0)
 
     @patch('search.views.MongoIndexer', Mock(side_effect=MockMongoIndexer, autospec=True))
     def test_index_course(self):
-        request = HttpRequest()
-        request.POST = {"course": "fake-course"}
+        request = self.request_factory.post(
+            '/index_courseware',
+            data={"course": "fake-course", "course_id": "fake/course/test"}
+        )
+        request.user = AnonymousUser()
         response = views.index_course(request)
         self.assertEqual(response.status_code, 204)
         self.assertTrue(response.has_header("content-type"))
+        self.assertEqual(response["course"], "fake-course")
 
     def tearDown(self):
         self.stub.stop()

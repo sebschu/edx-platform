@@ -171,6 +171,9 @@ MITX_FEATURES = {
 
     # Toggle storing detailed billing information
     'STORE_BILLING_INFO': False,
+
+    # Toggle search availability
+    'COURSE_SEARCH': False,
 }
 
 # Used for A/B testing
