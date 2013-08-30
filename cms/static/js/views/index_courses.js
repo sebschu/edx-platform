@@ -1,4 +1,5 @@
 function indexCourses(){
+    $("#index-courses").attr("disabled", true);
     $("body").css("cursor", "progress");
     var course = "";
     var url = "/index_courseware";
@@ -14,6 +15,7 @@ function indexCourses(){
 
 function success(){
     $("body").css("cursor", "auto");
+    $("#index-courses").attr("disabled", false);
 }
 
 $(document).ready(function() {

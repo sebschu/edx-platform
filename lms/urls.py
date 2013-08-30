@@ -165,7 +165,7 @@ if settings.WIKI_ENABLED:
 
 
 if settings.COURSEWARE_ENABLED:
-    if settings.get("SEARCH", False):
+    if settings.MITX_FEATURES.get("SEARCH", False):
         urlpatterns += (
             url(r'^courses/(?P<course_id>[^/]+/[^/]+/[^/]+)/search$', 'search.views.search', name="search"),
         )
