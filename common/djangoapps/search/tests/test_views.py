@@ -85,6 +85,7 @@ class MockMongoIndexer(MongoIndexer):
 
 
 @override_settings(ES_DATABASE="http://127.0.0.1:9203")
+@override_settings(MITX_FEATURES={"SEARCH": True})
 @patch('search.views.render_to_response', Mock(side_effect=mock_render_to_response, autospec=True))
 @patch('search.views.get_course_with_access', Mock(side_effect=mock_get_course_with_access, autospec=True))
 class ViewTest(TestCase):

@@ -95,7 +95,7 @@ def course_index(request, org, course, name):
         'category': 'vertical',
         "course_title": course_title,
         "course_id": "/".join([org, course, name]),
-        "search_boolean": settings.get("SEARCH", False)
+        "search_boolean": settings.MITX_FEATURES.get("SEARCH", False)
     })
 
 
