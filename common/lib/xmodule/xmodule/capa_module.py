@@ -25,6 +25,8 @@ from django.utils.translation import ugettext as _
 
 log = logging.getLogger("mitx.courseware")
 
+import ipdb
+
 
 # Generate this many different variants of problems with rerandomize=per_student
 NUM_RANDOMIZATION_BINS = 20
@@ -152,6 +154,7 @@ class CapaFields(object):
         help="Source code for LaTeX and Word problems. This feature is not well-supported.",
         scope=Scope.settings
     )
+    ### njp text_customization = Dict(help="xxxx", scope=Scope.settings, default=None)
 
 
 class CapaModule(CapaFields, XModule):
@@ -178,8 +181,10 @@ class CapaModule(CapaFields, XModule):
         """
         Accepts the same arguments as xmodule.x_module:XModule.__init__
         """
+        
         XModule.__init__(self, *args, **kwargs)
-
+        
+        #ipdb.set_trace()
         due_date = self.due
 
         if self.graceperiod is not None and due_date:
@@ -189,6 +194,8 @@ class CapaModule(CapaFields, XModule):
 
         if self.seed is None:
             self.choose_new_seed()
+        
+        self.text_customization = self.lms.text_customization
 
         # Need the problem location in openendedresponse to send out.  Adding
         # it to the system here seems like the least clunky way to get it
@@ -328,6 +335,7 @@ class CapaModule(CapaFields, XModule):
         """
         Return some html with data about the module
         """
+        #ipdb.set_trace()
         progress = self.get_progress()
         return self.system.render_template('problem_ajax.html', {
             'element_id': self.location.html_id(),
@@ -342,14 +350,21 @@ class CapaModule(CapaFields, XModule):
         Determine the name for the "check" button.
 
         Usually it is just "Check", but if this is the student's
-        final attempt, change the name to "Final Check"
+        final attempt, change the name to "Final Check".
+        The exact text be customized by text_customization setting.
         """
-        if self.max_attempts is not None:
-            final_check = (self.attempts >= self.max_attempts - 1)
+        check = _("Check")
+        final_check = _("Final Check")
+        #ipdb.set_trace()
+        # Apply customizations if present
+        if self.text_customization:
+            check = self.text_customization.get('custom_check', check)
+            final_check = self.text_customization.get('custom_final_check', final_check)
+        
+        if self.max_attempts is not None and self.attempts >= self.max_attempts - 1:
+            return final_check
         else:
-            final_check = False
-
-        return _("Final Check") if final_check else _("Check")
+            return check
 
     def should_show_check_button(self):
         """
