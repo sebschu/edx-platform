@@ -49,7 +49,7 @@ CONTENT MUSTACHE
           <div class="show-comments-wrapper">
             {{#thread}}
               {{#partial_comments}}
-                <a href="javascript:void(0)" class="discussion-show-comments first-time">Show all comments (<span class="comments-count">{{content.comments_count}}</span> total)</a>
+                <a href="javascript:void(0)" class="discussion-show-comments first-time">Show all comments (<span class="comments-count">{{content.comments_count}}</span> total <span class="hidden-accessible">comments</span>)</a>
               {{/partial_comments}}
               {{^partial_comments}}
                 <a href="javascript:void(0)" class="discussion-show-comments">Show <span class="comments-count">{{content.comments_count}}</span> {{##pluralize}}{{content.comments_count}} comment{{/pluralize}}</a>
