@@ -86,7 +86,7 @@ class ElasticDatabase(object):
         This will also only actually create something if the search feature flag is true.
         """
 
-        if settings.MITX_FEATURES.get("SEARCH", False):
+        if settings.MITX_FEATURES.get("COURSE_SEARCH", False):
             self.url = settings.ES_DATABASE
             self.index_settings = settings.ES_SETTINGS
         else:
