@@ -3,6 +3,7 @@ This module contains celery task functions for handling the sending of bulk emai
 to a course.
 """
 import math
+import random
 import re
 from uuid import uuid4
 from time import time, sleep
@@ -16,6 +17,9 @@ from smtplib import SMTPServerDisconnected, SMTPDataError, SMTPConnectError
 from celery import task, current_task, group
 from celery.utils.log import get_task_logger
 from celery.states import SUCCESS, FAILURE
+
+from boto.ses.exceptions import SESDailyQuotaExceededError, SESMaxSendingRateExceededError, SESError
+from boto.exception import AWSConnectionError
 
 from django.conf import settings
 from django.contrib.auth.models import User, Group
@@ -352,6 +356,8 @@ def _send_course_email(email_id, to_list, global_email_context, subtask_progress
 
     num_sent = 0
     num_error = 0
+    successful_sends = []
+
     try:
         connection = get_connection()
         connection.open()
@@ -410,9 +416,46 @@ def _send_course_email(email_id, to_list, global_email_context, subtask_progress
 
                     num_error += 1
 
+            successful_sends.append(to_list[-1])
             to_list.pop()
 
+<<<<<<< HEAD
     except (SMTPDataError, SMTPConnectError, SMTPServerDisconnected) as exc:
+=======
+        connection.close()
+        return course_email_result(num_sent, num_error, num_optout)
+
+    except SESMaxSendingRateExceededError as exc:
+        current_task.request.retries = min(current_task.request.retries, 1)
+        to_list = [email for email in to_list if email not in successful_sends]
+        # Retry the email at increasing exponential backoff.
+        # Don't resend emails that have already succeeded.
+        log.warning('Email with id %d not delivered due to rate exceeded error %s, retrying send to %d recipients',
+                    email_id, exc, len(to_list))
+        countdown = ((2 ** random.randint(1,4)) * 15) * random.uniform(.75, 1.5)
+        log.warning(
+            'Current task stats: num retries: %s; backoff: %s',
+            current_task.request.retries,
+            countdown
+        )
+        raise course_email.retry(
+            arg=[
+                email_id,
+                to_list,
+                course_title,
+                course_url,
+                image_url,
+                True
+            ],
+            exc=exc,
+            countdown=countdown
+        )
+    except (
+            SMTPDataError,
+            SMTPConnectError,
+            SMTPServerDisconnected,
+            AWSConnectionError
+    ) as exc:
         # Error caught here cause the email to be retried.  The entire task is actually retried without popping the list
         # Reasoning is that all of these errors may be temporary condition.
         # TODO: figure out what this means.  Presumably we have popped the list with those that have succeeded
@@ -427,12 +470,32 @@ def _send_course_email(email_id, to_list, global_email_context, subtask_progress
                 _course_email_result(subtask_progress, num_sent, num_error, num_optout),
             ],
             exc=exc,
-            countdown=(2 ** retry_index) * 15
+            countdown=((2 ** current_task.request.retries) * 15) * random.uniform(.75, 1.5)
         )
+    except SESDailyQuotaExceededError:
+        log.exception('WARNING: Course %s exceeded SES daily quota!', course_title)
+        log.exception('Email with id %d not sent due to exceeding SES daily quota. To list: %s',
+                      email_id,
+                      [i['email'] for i in to_list])
+        # TODO: This should trigger an alert to display on the instructor dashboard, if possible
+        #  (maybe something about contacting administrator? this is somewhat serious error)
+        connection.close()
+        raise
+
+    except SESError:
+        log.exception('Course %s email resulted in SES error on sending.', course_title)
+        log.exception('Email with id %d not sent due to SES error. To list: %s',
+                      email_id,
+                      [i['email'] for i in to_list])
+        # Should this trigger an alert to display on the instructor dashboard?
+        connection.close()
+        raise
+
     except:
         log.exception('Email with id %d caused send_course_email task to fail with uncaught exception. To list: %s',
                       email_id,
                       [i['email'] for i in to_list])
+        # Should this trigger an alert to display on the instructor dashboard?
         # Close the connection before we exit
         connection.close()
         raise
