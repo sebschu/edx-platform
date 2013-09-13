@@ -184,7 +184,7 @@ class CapaModule(CapaFields, XModule):
         
         XModule.__init__(self, *args, **kwargs)
         
-        #ipdb.set_trace()
+        ipdb.set_trace()
         due_date = self.due
 
         if self.graceperiod is not None and due_date:

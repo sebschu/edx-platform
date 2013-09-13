@@ -1,8 +1,7 @@
 from datetime import datetime
 from pytz import UTC
 
-<<<<<<< HEAD
-from xblock.fields import Scope, Boolean, String, Float, XBlockMixin
+from xblock.fields import Scope, Boolean, String, Float, XBlockMixin, Dict
 from xmodule.fields import Date, Timedelta
 from xblock.runtime import KeyValueStore
 
