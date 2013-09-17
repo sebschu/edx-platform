@@ -1081,7 +1081,9 @@ class FormulaEquationInput(InputTypeBase):
         """
         Can set size of text field.
         """
-        return [Attribute('size', '20'), ]
+        return [Attribute('size', '20'), 
+                Attribute('inline', False),
+        ]
 
     def _extra_context(self):
         """
