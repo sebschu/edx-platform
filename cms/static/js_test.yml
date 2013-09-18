@@ -16,7 +16,7 @@
 
 test_suite_name: cms
 
-test_runner: jasmine
+test_runner: jasmine_requirejs
 
 # Path prepended to source files in the coverage report (optional)
 # For example, if the source path
@@ -57,6 +57,7 @@ src_paths:
 
 # Paths to spec (test) JavaScript files
 spec_paths:
+    - coffee/spec/main.js
     - coffee/spec/helpers.js
     - coffee/spec
 
@@ -72,6 +73,10 @@ spec_paths:
 fixture_paths:
     - coffee/fixtures
 
+requirejs:
+  paths:
+    main: coffee/spec/main
+
 # Regular expressions used to exclude *.js files from
 # appearing in the test runner page.
 # Files are included by default, which means that they
@@ -81,19 +86,4 @@ fixture_paths:
 #exclude_from_page:
 #    - path/to/lib/exclude/*
 exclude_from_page:
-    - coffee/src/*
-    - js/*
-    - xmodule_js/common_static/*
-    - xmodule_js/src/xmodule.js
-
-# Regular expression used to guarantee that a *.js file
-# is included in the test runner page.
-# If a file name matches both `exclude_from_page` and
-# `include_in_page`, the file WILL be included.
-# You can use this to exclude all files in a directory,
-# but make an exception for particular files.
-include_in_page:
-    - xmodule_js/common_static/js/vendor/require.js
-    - xmodule_js/common_static/js/vendor/jasmine-jquery.js
-    - xmodule_js/common_static/js/vendor/jasmine-stealth.js
-    - xmodule_js/common_static/coffee/src/ajax_prefix.js
+    - .*

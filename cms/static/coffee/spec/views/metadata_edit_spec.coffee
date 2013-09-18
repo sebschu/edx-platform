@@ -1,5 +1,5 @@
-require ["js/models/metadata", "js/collections/metadata", "js/views/metadata"],
-(MetadataModel, MetadataCollection, MetadataView) ->
+require ["js/models/metadata", "js/collections/metadata", "js/views/metadata", "coffee/src/main"],
+(MetadataModel, MetadataCollection, MetadataView, main) ->
   verifyInputType = (input, expectedType) ->
       # Some browsers (e.g. FireFox) do not support the "number"
       # input type.  We can accept a "text" input instead
@@ -324,6 +324,7 @@ require ["js/models/metadata", "js/collections/metadata", "js/views/metadata"],
           listModel = new MetadataModel(listEntry)
           @listView = new MetadataView.List({model: listModel})
           @el = @listView.$el
+          main()
 
         it "returns the initial value upon initialization", ->
           assertValueInView(@listView, ['the first display value', 'the second'])

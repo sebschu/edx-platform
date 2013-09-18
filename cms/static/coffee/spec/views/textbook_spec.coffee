@@ -1,6 +1,7 @@
 require ["js/models/textbook", "js/models/chapter", "js/collections/chapter", "js/models/section",
     "js/collections/textbook", "js/views/show_textbook", "js/views/edit_textbook", "js/views/list_textbooks",
-    "js/views/edit_chapter", "js/views/feedback_prompt", "js/views/feedback_notification", "sinon"],
+    "js/views/edit_chapter", "js/views/feedback_prompt", "js/views/feedback_notification",
+    "sinon", "jasmine-stealth"],
 (Textbook, Chapter, ChapterSet, Section, TextbookSet, ShowTextbook, EditTextbook, ListTexbook, EditChapter, Prompt, Notification, sinon) ->
     feedbackTpl = readFixtures('system-feedback.underscore')
 

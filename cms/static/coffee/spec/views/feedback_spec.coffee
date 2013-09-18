@@ -1,6 +1,6 @@
-require ["js/views/feedback", "js/views/feedback_notification", "js/views/feedback_alert",
+require ["jquery", "js/views/feedback", "js/views/feedback_notification", "js/views/feedback_alert",
     "js/views/feedback_prompt", "sinon"],
-(SystemFeedback, NotificationView, AlertView, PromptView, sinon) ->
+($, SystemFeedback, NotificationView, AlertView, PromptView, sinon) ->
 
     tpl = readFixtures('system-feedback.underscore')
 

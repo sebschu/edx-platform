@@ -1,4 +1,4 @@
-require ["coffee/src/models/module"], (Module) ->
+define ["coffee/src/models/module"], (Module) ->
     describe "Module", ->
         it "set the correct URL", ->
             expect(new Module().url).toEqual("/save_item")

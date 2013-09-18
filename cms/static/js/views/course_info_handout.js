@@ -1,6 +1,7 @@
 define(["backbone", "underscore", "codemirror", "js/views/feedback_notification", "js/views/course_info_helper"],
     function(Backbone, _, CodeMirror, NotificationView, CourseInfoHelper) {
 
+    var $modalCover = $(".modal-cover");
     // the handouts view is dumb right now; it needs tied to a model and all that jazz
     var CourseInfoHandoutsView = Backbone.View.extend({
         // collection is CourseUpdateCollection
@@ -46,8 +47,8 @@ define(["backbone", "underscore", "codemirror", "js/views/feedback_notification"
             this.$codeMirror = CourseInfoHelper.editWithCodeMirror(
                 self.model, 'data', self.options['base_asset_url'], this.$editor.get(0));
 
-            window.$modalCover.show();
-            window.$modalCover.bind('click', function() {
+            $modalCover.show();
+            $modalCover.bind('click', function() {
                 self.closeEditor();
             });
         },
@@ -80,8 +81,8 @@ define(["backbone", "underscore", "codemirror", "js/views/feedback_notification"
 
         closeEditor: function() {
             this.$form.hide();
-            window.$modalCover.unbind('click');
-            window.$modalCover.hide();
+            $modalCover.unbind('click');
+            $modalCover.hide();
             this.$form.find('.CodeMirror').remove();
             this.$codeMirror = null;
         }

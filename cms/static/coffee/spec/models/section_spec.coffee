@@ -1,4 +1,4 @@
-require ["js/models/section", "sinon"], (Section, sinon) ->
+define ["js/models/section", "sinon"], (Section, sinon) ->
     describe "Section", ->
         describe "basic", ->
             beforeEach ->

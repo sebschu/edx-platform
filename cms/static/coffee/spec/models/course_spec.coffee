@@ -1,4 +1,4 @@
-require ["js/models/course"], (Course) ->
+define ["js/models/course"], (Course) ->
     describe "Course", ->
         describe "basic", ->
             beforeEach ->

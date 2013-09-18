@@ -1,5 +1,6 @@
-require ["backbone", "js/models/textbook", "js/collections/textbook", "js/models/chapter", "js/collections/chapter"],
-(Backbone, Textbook, TextbookSet, Chapter, ChapterSet) ->
+define ["backbone", "js/models/textbook", "js/collections/textbook", "js/models/chapter", "js/collections/chapter", "coffee/src/main"],
+(Backbone, Textbook, TextbookSet, Chapter, ChapterSet, main) ->
+
     beforeEach ->
         @addMatchers
             toBeInstanceOf: (expected) ->
@@ -8,6 +9,7 @@ require ["backbone", "js/models/textbook", "js/collections/textbook", "js/models
 
     describe "CMS.Models.Textbook", ->
         beforeEach ->
+            main()
             @model = new Textbook()
 
         describe "Basic", ->

@@ -1,4 +1,4 @@
-require ["js/models/uploads"], (FileUpload) ->
+define ["js/models/uploads"], (FileUpload) ->
 
     describe "FileUpload", ->
         beforeEach ->

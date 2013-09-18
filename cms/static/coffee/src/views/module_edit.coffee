@@ -106,13 +106,14 @@ define ["backbone", "jquery", "underscore", "gettext", "xmodule",
       @hideModal()
 
     hideModal: ->
+      $modalCover = $(".modal-cover")
       $modalCover.hide()
       $modalCover.removeClass('is-fixed')
 
     clickEditButton: (event) ->
       event.preventDefault()
       @$el.addClass('editing')
-      $modalCover.show().addClass('is-fixed')
+      $(".modal-cover").show().addClass('is-fixed')
       @$component_editor().slideDown(150)
       @loadEdit()
 

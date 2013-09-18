@@ -1,4 +1,4 @@
-require ["js/models/metadata"], (Metadata) ->
+define ["js/models/metadata"], (Metadata) ->
     describe "Metadata", ->
         it "knows when the value has not been modified", ->
             model = new Metadata(

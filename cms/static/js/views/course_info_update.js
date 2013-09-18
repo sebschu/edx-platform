@@ -2,7 +2,7 @@ define(["backbone", "underscore", "codemirror", "js/models/course_update",
     "js/views/feedback_prompt", "js/views/feedback_notification", "js/views/course_info_helper"],
     function(Backbone, _, CodeMirror, CourseUpdateModel, PromptView, NotificationView, CourseInfoHelper) {
 
-
+    var $modalCover = $(".modal-cover");
     var CourseInfoUpdateView = Backbone.View.extend({
         // collection is CourseUpdateCollection
         events: {
@@ -63,8 +63,8 @@ define(["backbone", "underscore", "codemirror", "js/models/course_update",
             $newForm.addClass('editing');
             this.$currentPost = $newForm.closest('li');
 
-            window.$modalCover.show();
-            window.$modalCover.bind('click', function() {
+            $modalCover.show();
+            $modalCover.bind('click', function() {
                 self.closeEditor(true);
             });
 
@@ -120,8 +120,8 @@ define(["backbone", "underscore", "codemirror", "js/models/course_update",
             this.$codeMirror = CourseInfoHelper.editWithCodeMirror(
                 targetModel, 'content', self.options['base_asset_url'], $textArea.get(0));
 
-            window.$modalCover.show();
-            window.$modalCover.bind('click', function() {
+            $modalCover.show();
+            $modalCover.bind('click', function() {
                 self.closeEditor(self);
             });
         },
@@ -197,8 +197,8 @@ define(["backbone", "underscore", "codemirror", "js/models/course_update",
                 this.$currentPost.find('.CodeMirror').remove();
             }
 
-            window.$modalCover.unbind('click');
-            window.$modalCover.hide();
+            $modalCover.unbind('click');
+            $modalCover.hide();
             this.$codeMirror = null;
         },
 

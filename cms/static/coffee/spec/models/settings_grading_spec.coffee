@@ -1,4 +1,4 @@
-require ["js/models/settings/course_grading_policy"], (CourseGradingPolicy) ->
+define ["js/models/settings/course_grading_policy"], (CourseGradingPolicy) ->
     describe "CourseGradingPolicy", ->
         beforeEach ->
             @model = new CourseGradingPolicy()
