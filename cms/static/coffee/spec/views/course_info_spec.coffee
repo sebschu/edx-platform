@@ -1,4 +1,4 @@
-require ["js/views/course_info_handout", "js/views/course_info_update", "js/models/module_info", "js/collections/course_update", "sinon"],
+define ["js/views/course_info_handout", "js/views/course_info_update", "js/models/module_info", "js/collections/course_update", "sinon"],
 (CourseInfoHandoutsView, CourseInfoUpdateView, ModuleInfo, CourseUpdateCollection, sinon) ->
 
     courseInfoPage = """

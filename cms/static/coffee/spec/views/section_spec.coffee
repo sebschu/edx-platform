@@ -1,4 +1,4 @@
-require ["js/models/section", "js/views/section_show", "js/views/section_edit", "sinon"], (Section, SectionShow, SectionEdit, sinon) ->
+define ["js/models/section", "js/views/section_show", "js/views/section_edit", "sinon"], (Section, SectionShow, SectionEdit, sinon) ->
 
     describe "SectionShow", ->
         describe "Basic", ->

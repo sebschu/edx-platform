@@ -1,4 +1,4 @@
-require ["coffee/src/views/module_edit", "xmodule"], (ModuleEdit) ->
+define ["coffee/src/views/module_edit", "xmodule"], (ModuleEdit) ->
 
     describe "ModuleEdit", ->
       beforeEach ->

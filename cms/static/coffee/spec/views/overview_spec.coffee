@@ -1,4 +1,4 @@
-#require ["js/views/feedback_notification", "sinon", "js/base"], (NotificationView, sinon) ->
+#define ["js/views/feedback_notification", "sinon", "js/base"], (NotificationView, sinon) ->
 #
 #    describe "Course Overview", ->
 #

@@ -1,4 +1,4 @@
-require ["jquery", "js/views/feedback", "js/views/feedback_notification", "js/views/feedback_alert",
+define ["jquery", "js/views/feedback", "js/views/feedback_notification", "js/views/feedback_alert",
     "js/views/feedback_prompt", "sinon"],
 ($, SystemFeedback, NotificationView, AlertView, PromptView, sinon) ->
 

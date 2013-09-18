@@ -1,4 +1,4 @@
-require ["js/models/textbook", "js/models/chapter", "js/collections/chapter", "js/models/section",
+define ["js/models/textbook", "js/models/chapter", "js/collections/chapter", "js/models/section",
     "js/collections/textbook", "js/views/show_textbook", "js/views/edit_textbook", "js/views/list_textbooks",
     "js/views/edit_chapter", "js/views/feedback_prompt", "js/views/feedback_notification",
     "sinon", "jasmine-stealth"],

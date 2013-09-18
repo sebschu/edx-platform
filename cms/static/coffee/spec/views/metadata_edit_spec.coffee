@@ -1,4 +1,4 @@
-require ["js/models/metadata", "js/collections/metadata", "js/views/metadata", "coffee/src/main"],
+define ["js/models/metadata", "js/collections/metadata", "js/views/metadata", "coffee/src/main"],
 (MetadataModel, MetadataCollection, MetadataView, main) ->
   verifyInputType = (input, expectedType) ->
       # Some browsers (e.g. FireFox) do not support the "number"
