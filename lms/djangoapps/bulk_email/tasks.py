@@ -31,6 +31,16 @@ from courseware.courses import get_course_by_id, course_image_url
 log = get_task_logger(__name__)
 
 
+# Exceptions that, if caught, should cause the task to be re-tried
+RETRY_ERRORS = (SMTPDataError, SMTPConnectError, SMTPServerDisconnected, AWSConnectionError)
+
+# Errors that involve exceeding a quota of sent email
+QUOTA_EXCEEDED_ERROR = (SESDailyQuotaExceededError, )
+
+# Errors that mail is being sent too quickly. When caught by a task, it
+# triggers an exponential backoff and retry.
+SENDING_RATE_ERROR = (SESMaxSendingRateExceededError, )
+
 @task(default_retry_delay=10, max_retries=5)  # pylint: disable=E1102
 def delegate_email_batches(email_id, user_id):
     """
@@ -221,7 +231,7 @@ def _send_course_email(email_id, to_list, course_title, course_url, image_url, t
         connection.close()
         return course_email_result(num_sent, num_error, num_optout)
 
-    except SESMaxSendingRateExceededError as exc:
+    except SENDING_RATE_ERROR as exc:
         current_task.request.retries = min(current_task.request.retries, 1)
         to_list = [email for email in to_list if email not in successful_sends]
         # Retry the email at increasing exponential backoff.
@@ -247,12 +257,7 @@ def _send_course_email(email_id, to_list, course_title, course_url, image_url, t
             exc=exc,
             countdown=countdown
         )
-    except (
-            SMTPDataError,
-            SMTPConnectError,
-            SMTPServerDisconnected,
-            AWSConnectionError
-    ) as exc:
+    except RETRY_ERRORS as exc:
         # Error caught here cause the email to be retried.  The entire task is actually retried without popping the list
         # Reasoning is that all of these errors may be temporary condition.
         log.warning('Email with id %d not delivered due to temporary error %s, retrying send to %d recipients',
@@ -269,22 +274,13 @@ def _send_course_email(email_id, to_list, course_title, course_url, image_url, t
             exc=exc,
             countdown=((2 ** current_task.request.retries) * 15) * random.uniform(.75, 1.5)
         )
-    except SESDailyQuotaExceededError:
-        log.exception('WARNING: Course %s exceeded SES daily quota!', course_title)
-        log.exception('Email with id %d not sent due to exceeding SES daily quota. To list: %s',
+    except QUOTA_EXCEEDED_ERROR:
+        log.exception('WARNING: Course %s exceeded quota!', course_title)
+        log.exception('Email with id %d not sent due to exceeding quota. To list: %s',
                       email_id,
                       [i['email'] for i in to_list])
         # TODO: This should trigger an alert to display on the instructor dashboard, if possible
         #  (maybe something about contacting administrator? this is somewhat serious error)
-        connection.close()
-        raise
-
-    except SESError:
-        log.exception('Course %s email resulted in SES error on sending.', course_title)
-        log.exception('Email with id %d not sent due to SES error. To list: %s',
-                      email_id,
-                      [i['email'] for i in to_list])
-        # Should this trigger an alert to display on the instructor dashboard?
         connection.close()
         raise
 
