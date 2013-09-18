@@ -154,7 +154,7 @@ class CapaFields(object):
         help="Source code for LaTeX and Word problems. This feature is not well-supported.",
         scope=Scope.settings
     )
-    ### njp text_customization = Dict(help="xxxx", scope=Scope.settings, default=None)
+    text_customization = Dict(help="xxxx", scope=Scope.settings, default=None)
 
 
 class CapaModule(CapaFields, XModule):
@@ -195,8 +195,6 @@ class CapaModule(CapaFields, XModule):
         if self.seed is None:
             self.choose_new_seed()
         
-        self.text_customization = self.lms.text_customization
-
         # Need the problem location in openendedresponse to send out.  Adding
         # it to the system here seems like the least clunky way to get it
         # there.
