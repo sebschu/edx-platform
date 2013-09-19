@@ -25,7 +25,6 @@ from django.utils.translation import ugettext as _
 
 log = logging.getLogger("mitx.courseware")
 
-import ipdb
 
 
 # Generate this many different variants of problems with rerandomize=per_student
@@ -335,7 +334,6 @@ class CapaModule(CapaFields, XModule):
         """
         Return some html with data about the module
         """
-        #ipdb.set_trace()
         progress = self.get_progress()
         return self.system.render_template('problem_ajax.html', {
             'element_id': self.location.html_id(),
@@ -351,7 +349,7 @@ class CapaModule(CapaFields, XModule):
 
         Usually it is just "Check", but if this is the student's
         final attempt, change the name to "Final Check".
-        The exact text be customized by text_customization setting.
+        The text be customized by the text_customization setting.
         """
         check = _("Check")
         final_check = _("Final Check")
