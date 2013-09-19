@@ -16,6 +16,7 @@ gfortran
 libfreetype6-dev
 libpng12-dev
 libjpeg-dev
+libtiff4
 libxml2-dev
 libxslt-dev
 yui-compressor
