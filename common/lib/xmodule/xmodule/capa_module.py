@@ -154,7 +154,10 @@ class CapaFields(object):
         help="Source code for LaTeX and Word problems. This feature is not well-supported.",
         scope=Scope.settings
     )
-    text_customization = Dict(help="xxxx", scope=Scope.settings, default=None)
+    text_customization = Dict(
+        help="String customization substitutions for particular locations",
+        scope=Scope.settings,
+        default=None)
 
 
 class CapaModule(CapaFields, XModule):
@@ -184,7 +187,6 @@ class CapaModule(CapaFields, XModule):
         
         XModule.__init__(self, *args, **kwargs)
         
-        ipdb.set_trace()
         due_date = self.due
 
         if self.graceperiod is not None and due_date:
