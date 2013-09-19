@@ -32,7 +32,8 @@
       <div class="group-visibility-label">${"<%- obj.group_string%>"}</div>
               ${"<% }  %>"}      
       
-          <a href="#" class="vote-btn discussion-vote discussion-vote-up" data-role="discussion-vote" data-tooltip="vote">          <span class="plus-icon">+</span> <span class='votes-count-number'>${'<%- votes["up_count"] %>'}<span class="hidden-accessible">votes</span></span><span class="hidden-accessible">click to vote</span></a>
+          <a href="#" class="vote-btn discussion-vote discussion-vote-up" data-role="discussion-vote" data-tooltip="vote">          
+          <span class="plus-icon">+</span> <span class='votes-count-number'>${'<%- votes["up_count"] %>'}<span class="hidden-accessible">votes</span></span><span class="hidden-accessible">click to vote</span></a>
           <h1>${'<%- title %>'}</h1>
           <p class="posted-details">
               ${"<% if (obj.username) { %>"}
