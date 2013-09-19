@@ -9,25 +9,24 @@ from django.utils.translation import ugettext as _
 
 <%block name="jsextra">
   <script type='text/javascript'>
-require(["jquery","coffee/src/models/module", "coffee/src/views/unit", "jquery.ui"], function($, ModuleModel, UnitEditView, ui) {
+require(["domReady!", "jquery", "coffee/src/models/module", "coffee/src/views/unit", "jquery.ui"],
+    function(doc, $, ModuleModel, UnitEditView, ui) {
   window.unit_location_analytics = '${unit_location}';
 
-  $(document).ready(function() {
-    // tabs
-    $('.tab-group').tabs();
+  // tabs
+  $('.tab-group').tabs();
 
-    new UnitEditView({
-      el: $('.main-wrapper'),
-      model: new ModuleModel({
-        id: '${unit_location}',
-        state: '${unit_state}'
-      })
-    });
+  new UnitEditView({
+    el: $('.main-wrapper'),
+    model: new ModuleModel({
+      id: '${unit_location}',
+      state: '${unit_state}'
+    })
+  });
 
-    $('.new-component-template').each(function(){
-        $emptyEditor = $(this).find('.empty');
-        $(this).prepend($emptyEditor);
-    });
+  $('.new-component-template').each(function(){
+      $emptyEditor = $(this).find('.empty');
+      $(this).prepend($emptyEditor);
   });
 });
   </script>

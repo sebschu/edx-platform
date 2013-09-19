@@ -99,33 +99,31 @@
 <link rel="stylesheet" type="text/css" href="${static.url('js/vendor/timepicker/jquery.timepicker.css')}" />
 
 <script type="text/javascript">
-require(["jquery", "js/models/location", "js/views/overview_assignment_grader",
+require(["domReady!", "jquery", "js/models/location", "js/views/overview_assignment_grader",
   "js/collections/course_grader", "js/views/overview"],
-  function($, Location, OverviewAssignmentGrader, CourseGraderCollection){
-    $(document).ready(function() {
-        // expand the due-date area if the values are set
-        if ($('#due_date').val() != '') {
-            var $block = $('.set-date').closest('.due-date-input');
-            $('.set-date').hide();
-            $block.find('.date-setter').show();
-        }
-        // TODO figure out whether these should be in window or someplace else or whether they're only needed as local vars
-        // I believe that current (New Section/New Subsection) cause full page reloads which means these aren't needed globally
-        // but we really should change that behavior.
-      if (!window.graderTypes) {
-          window.graderTypes = new CourseGraderCollection();
-          window.graderTypes.course_location = new Location('${parent_location}');
-          window.graderTypes.reset(${course_graders|n});
-      }
+  function(doc, $, Location, OverviewAssignmentGrader, CourseGraderCollection) {
+    // expand the due-date area if the values are set
+    if ($('#due_date').val() != '') {
+      var $block = $('.set-date').closest('.due-date-input');
+      $('.set-date').hide();
+      $block.find('.date-setter').show();
+    }
+    // TODO figure out whether these should be in window or someplace else or whether they're only needed as local vars
+    // I believe that current (New Section/New Subsection) cause full page reloads which means these aren't needed globally
+    // but we really should change that behavior.
+    if (!window.graderTypes) {
+        window.graderTypes = new CourseGraderCollection();
+        window.graderTypes.course_location = new Location('${parent_location}');
+        window.graderTypes.reset(${course_graders|n});
+    }
 
-      $(".gradable-status").each(function(index, ele) {
-          var gradeView = new OverviewAssignmentGrader({
-              el : ele,
-              graders : window.graderTypes,
-              hideSymbol : true
-          });
+    $(".gradable-status").each(function(index, ele) {
+      var gradeView = new OverviewAssignmentGrader({
+        el : ele,
+        graders : window.graderTypes,
+        hideSymbol : true
       });
-    })
+    });
 });
 </script>
 </%block>

@@ -55,6 +55,7 @@ def click_component_from_menu(category, boilerplate, expected_css):
     assert_equal(len(elements), 1)
     world.css_click(elem_css)
 
+
 @world.absorb
 def edit_component_and_select_settings():
     world.wait_for(lambda _driver: world.css_visible('a.edit-button'))

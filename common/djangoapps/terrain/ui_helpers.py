@@ -53,6 +53,11 @@ def wait_for_xmodule():
     world.wait_for_js_variable_defined("XModule")
 
 
+@world.absorb
+def wait_for_mathjax():
+    world.wait_for_js_variable_defined("MathJax.isReady")
+
+
 class RequireJSError(Exception): pass
 
 

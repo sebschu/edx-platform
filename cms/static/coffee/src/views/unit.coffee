@@ -60,15 +60,12 @@ define ["jquery", "jquery.ui", "gettext", "backbone",
         items: '> .component'
       )
 
-      @$('.component').each((idx, element) =>
-          new ModuleEditView(
-              el: element,
-              onDelete: @deleteComponent,
-              model: new ModuleModel(
-                  id: $(element).data('id'),
-              )
-          )
-      )
+      @$('.component').each (idx, element) =>
+        new ModuleEditView
+          el: element,
+          onDelete: @deleteComponent,
+          model: new ModuleModel
+            id: $(element).data('id')
 
     showComponentTemplates: (event) =>
       event.preventDefault()

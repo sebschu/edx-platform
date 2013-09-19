@@ -24,6 +24,7 @@ require(["jquery", "gettext", "js/models/asset", "js/collections/asset",
         var assets = new AssetCollection(${asset_list});
         assets.url = "${update_asset_callback_url}";
         var assetsView = new AssetsView({collection: assets, el: $('#asset_table_body')});
+        var $modalCover = $(".modal-cover");
 
         $(document).ready(function() {
             $('.uploads .upload-button').bind('click', showUploadModal);

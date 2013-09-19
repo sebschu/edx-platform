@@ -19,33 +19,31 @@
   </script>
 
   <script type="text/javascript">
-require(["jquery", "js/models/location", "js/models/section", "js/views/section_show", "js/views/overview_assignment_grader", "js/collections/course_grader", "js/views/overview", "jquery.inputnumber"],
-    function($, Location, SectionModel, SectionShowView, OverviewAssignmentGrader, CourseGraderCollection){
-  $(document).ready(function(){
-    // TODO figure out whether these should be in window or someplace else or whether they're only needed as local vars
-    // I believe that current (New Section/New Subsection) cause full page reloads which means these aren't needed globally
-    // but we really should change that behavior.
-    if (!window.graderTypes) {
-      window.graderTypes = new CourseGraderCollection();
-      window.graderTypes.course_location = new Location('${parent_location}');
-      window.graderTypes.reset(${course_graders|n});
-    }
+require(["domReady!", "jquery", "js/models/location", "js/models/section", "js/views/section_show", "js/views/overview_assignment_grader", "js/collections/course_grader", "js/views/overview", "jquery.inputnumber"],
+    function(doc, $, Location, SectionModel, SectionShowView, OverviewAssignmentGrader, CourseGraderCollection){
+  // TODO figure out whether these should be in window or someplace else or whether they're only needed as local vars
+  // I believe that current (New Section/New Subsection) cause full page reloads which means these aren't needed globally
+  // but we really should change that behavior.
+  if (!window.graderTypes) {
+    window.graderTypes = new CourseGraderCollection();
+    window.graderTypes.course_location = new Location('${parent_location}');
+    window.graderTypes.reset(${course_graders|n});
+  }
 
-    $(".gradable-status").each(function(index, ele) {
-        var gradeView = new OverviewAssignmentGrader({
-            el : ele,
-            graders : window.graderTypes
-        });
-    });
-
-    $(".section-name").each(function() {
-        var model = new SectionModel({
-            id: $(this).parent(".item-details").data("id"),
-            name: $(this).data("name")
-        });
-        new SectionShowView({model: model, el: this}).render();
-    })
+  $(".gradable-status").each(function(index, ele) {
+      var gradeView = new OverviewAssignmentGrader({
+          el : ele,
+          graders : window.graderTypes
+      });
   });
+
+  $(".section-name").each(function() {
+      var model = new SectionModel({
+          id: $(this).parent(".item-details").data("id"),
+          name: $(this).data("name")
+      });
+      new SectionShowView({model: model, el: this}).render();
+  })
 });
   </script>
 </%block>

@@ -19,24 +19,20 @@
 <%block name="jsextra">
   <link rel="stylesheet" type="text/css" href="${static.url('js/vendor/timepicker/jquery.timepicker.css')}" />
   <script type="text/javascript">
-require(["jquery", "js/views/settings/grading", "js/models/settings/course_grading_policy"], function($, GradingView, CourseGradingPolicyModel) {
-    $(document).ready(function(){
-
-      $("form :input").focus(function() {
-        $("label[for='" + this.id + "']").addClass("is-focused");
-      }).blur(function() {
-        $("label").removeClass("is-focused");
-      });
-
-      var editor = new GradingView({
-          el: $('.settings-grading'),
-          model : new CourseGradingPolicyModel(${course_details|n},{parse:true})
-      });
-
-      editor.render();
+require(["domReady!", "jquery", "js/views/settings/grading", "js/models/settings/course_grading_policy"], function(doc, $, GradingView, CourseGradingPolicyModel) {
+    $("form :input").focus(function() {
+      $("label[for='" + this.id + "']").addClass("is-focused");
+    }).blur(function() {
+      $("label").removeClass("is-focused");
     });
-});
 
+    var editor = new GradingView({
+        el: $('.settings-grading'),
+        model : new CourseGradingPolicyModel(${course_details|n},{parse:true})
+    });
+
+    editor.render();
+});
   </script>
 </%block>
 
