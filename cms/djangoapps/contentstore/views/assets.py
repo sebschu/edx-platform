@@ -27,6 +27,7 @@ from django.utils.translation import ugettext as _
 
 __all__ = ['asset_index', 'upload_asset']
 
+locked_assets = []
 
 @login_required
 @ensure_csrf_cookie
@@ -60,7 +61,9 @@ def asset_index(request, org, course, name):
         _thumbnail_location = asset.get('thumbnail_location', None)
         thumbnail_location = Location(_thumbnail_location) if _thumbnail_location is not None else None
 
-        asset_json.append(_get_asset_json(asset['displayname'], asset['uploadDate'], asset_location, thumbnail_location))
+        # TODO: replace with real logic
+        asset_locked = asset_location in locked_assets
+        asset_json.append(_get_asset_json(asset['displayname'], asset['uploadDate'], asset_location, thumbnail_location, asset_locked))
 
     return render_to_response('asset_index.html', {
         'context_course': course_module,
@@ -136,15 +139,17 @@ def upload_asset(request, org, course, coursename):
     # readback the saved content - we need the database timestamp
     readback = contentstore().find(content.location)
 
+    # TODO: should get locking state from content (though we expect it to always be False for new asset).
+
     response_payload = {
-        'asset': _get_asset_json(content.name, readback.last_modified_at, content.location, content.thumbnail_location),
+        'asset': _get_asset_json(content.name, readback.last_modified_at, content.location, content.thumbnail_location, False),
         'msg': _('Upload completed')
     }
 
     return JsonResponse(response_payload)
 
 
-@require_http_methods(("DELETE",))
+@require_http_methods(("DELETE", "POST", "PUT", "GET"))
 @login_required
 @ensure_csrf_cookie
 def update_asset(request, org, course, name, asset_id):
@@ -157,42 +162,53 @@ def update_asset(request, org, course, name, asset_id):
     """
     get_location_and_verify_access(request, org, course, name)
 
-    # make sure the location is valid
-    try:
-        loc = StaticContent.get_location_from_path(asset_id)
-    except InvalidLocationError as err:
-        # return a 'Bad Request' to browser as we have a malformed Location
-        return JsonResponse({"error": err.message}, status=400)
-
-    # also make sure the item to delete actually exists
-    try:
-        content = contentstore().find(loc)
-    except NotFoundError:
-        return JsonResponse(status=404)
-
-    # ok, save the content into the trashcan
-    contentstore('trashcan').save(content)
-
-    # see if there is a thumbnail as well, if so move that as well
-    if content.thumbnail_location is not None:
+    if request.method == 'DELETE':
+        # make sure the location is valid
         try:
-            thumbnail_content = contentstore().find(content.thumbnail_location)
-            contentstore('trashcan').save(thumbnail_content)
-            # hard delete thumbnail from origin
-            contentstore().delete(thumbnail_content.get_id())
-            # remove from any caching
-            del_cached_content(thumbnail_content.location)
-        except:
-            logging.warning('Could not delete thumbnail: ' + content.thumbnail_location)
+            loc = StaticContent.get_location_from_path(asset_id)
+        except InvalidLocationError as err:
+            # return a 'Bad Request' to browser as we have a malformed Location
+            return JsonResponse({"error": err.message}, status=400)
+    
+        # also make sure the item to delete actually exists
+        try:
+            content = contentstore().find(loc)
+        except NotFoundError:
+            return JsonResponse(status=404)
+    
+        # ok, save the content into the trashcan
+        contentstore('trashcan').save(content)
+    
+        # see if there is a thumbnail as well, if so move that as well
+        if content.thumbnail_location is not None:
+            try:
+                thumbnail_content = contentstore().find(content.thumbnail_location)
+                contentstore('trashcan').save(thumbnail_content)
+                # hard delete thumbnail from origin
+                contentstore().delete(thumbnail_content.get_id())
+                # remove from any caching
+                del_cached_content(thumbnail_content.location)
+            except:
+                logging.warning('Could not delete thumbnail: ' + content.thumbnail_location)
+    
+        # delete the original
+        contentstore().delete(content.get_id())
+        # remove from cache
+        del_cached_content(content.location)
+        return JsonResponse()
 
-    # delete the original
-    contentstore().delete(content.get_id())
-    # remove from cache
-    del_cached_content(content.location)
-    return JsonResponse()
+    elif request.method in ('PUT', 'POST'):
+        # We don't support creation of new assets through this
+        # method-- just changing the locked state.
+        modified_asset = json.loads(request.body)
+        url = modified_asset['url']
+        if modified_asset['locked']:
+            locked_assets.append(url)
+        elif url in locked_assets:
+            locked_assets.remove(url)
+        return JsonResponse(modified_asset, status=201)
 
-
-def _get_asset_json(display_name, date, location, thumbnail_location):
+def _get_asset_json(display_name, date, location, thumbnail_location, locked):
     """
     Helper method for formatting the asset information to send to client.
     """
@@ -203,6 +219,7 @@ def _get_asset_json(display_name, date, location, thumbnail_location):
         'url': asset_url,
         'portable_url': StaticContent.get_static_path_from_location(location),
         'thumbnail': StaticContent.get_url_path_from_location(thumbnail_location) if thumbnail_location is not None else None,
+        'locked': locked,
         # Needed for Backbone delete/update.
         'id': asset_url
     }
