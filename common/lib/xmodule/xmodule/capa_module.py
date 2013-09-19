@@ -193,7 +193,7 @@ class CapaModule(CapaFields, XModule):
 
         if self.seed is None:
             self.choose_new_seed()
-        
+
         # Need the problem location in openendedresponse to send out.  Adding
         # it to the system here seems like the least clunky way to get it
         # there.
