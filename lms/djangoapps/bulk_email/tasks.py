@@ -226,39 +226,39 @@ def _send_course_email(email_id, to_list, course_title, course_url, image_url, t
                     dog_stats_api.increment('course_email.error', tags=[_statsd_tag(course_title)])
                     num_error += 1
 
-            except SENDING_RATE_ERROR as exc:
-                current_task.request.retries = min(current_task.request.retries, 1)
-                resend_list = [email for email in to_list if email not in successful_sends]
-                log.info("Task %s: Successfully sent to %s users; failed to send to %s users",
-                         current_task.request.id, len(successful_sends), len(resend_list))
-                # Retry the email at increasing exponential backoff.
-                # Don't resend emails that have already succeeded.
-                log.warning('Task %s: Email with id %d not delivered due to rate exceeded error %s, retrying send to %d recipients',
-                            current_task.request.id, email_id, exc, len(to_list))
-                countdown = ((2 ** random.randint(1,4)) * 15) * random.uniform(.75, 1.5)
-                log.warning(
-                    'Current task %s stats: num retries: %s; backoff: %s',
-                    current_task.request.id,
-                    current_task.request.retries,
-                    countdown
-                )
-                raise course_email.retry(
-                    arg=[
-                        email_id,
-                        resend_list,
-                        course_title,
-                        course_url,
-                        image_url,
-                        True
-                    ],
-                    exc=exc,
-                    countdown=countdown
-                )
-
             to_list.pop()
 
         connection.close()
         return course_email_result(num_sent, num_error, num_optout)
+
+    except SENDING_RATE_ERROR as exc:
+        current_task.request.retries = min(current_task.request.retries, 1)
+        resend_list = [email for email in to_list if email not in successful_sends]
+        log.info("Task %s: Successfully sent to %s users; failed to send to %s users",
+                 current_task.request.id, len(successful_sends), len(resend_list))
+        # Retry the email at increasing exponential backoff.
+        # Don't resend emails that have already succeeded.
+        log.warning('Task %s: Email with id %d not delivered due to rate exceeded error %s, retrying send to %d recipients',
+                    current_task.request.id, email_id, exc, len(to_list))
+        countdown = ((2 ** random.randint(1,4)) * 15) * random.uniform(.75, 1.5)
+        log.warning(
+            'Current task %s stats: num retries: %s; backoff: %s',
+            current_task.request.id,
+            current_task.request.retries,
+            countdown
+        )
+        raise course_email.retry(
+            arg=[
+                email_id,
+                resend_list,
+                course_title,
+                course_url,
+                image_url,
+                True
+            ],
+            exc=exc,
+            countdown=countdown
+        )
 
     except RETRY_ERRORS as exc:
         # Error caught here cause the email to be retried.  The entire task is actually retried without popping the list
