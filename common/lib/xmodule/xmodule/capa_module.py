@@ -26,7 +26,6 @@ from django.utils.translation import ugettext as _
 log = logging.getLogger("mitx.courseware")
 
 
-
 # Generate this many different variants of problems with rerandomize=per_student
 NUM_RANDOMIZATION_BINS = 20
 # Never produce more than this many different seeds, no matter what.
@@ -183,9 +182,8 @@ class CapaModule(CapaFields, XModule):
         """
         Accepts the same arguments as xmodule.x_module:XModule.__init__
         """
-        
         XModule.__init__(self, *args, **kwargs)
-        
+
         due_date = self.due
 
         if self.graceperiod is not None and due_date:
