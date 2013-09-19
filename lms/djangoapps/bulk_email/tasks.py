@@ -137,7 +137,8 @@ def _send_course_email(email_id, to_list, course_title, course_url, image_url, t
     """
     Performs the email sending task.
     """
-    log.info("Starting task with id %s", current_task.request.id)
+    log.info("Starting task with id %s and to_list of length %s",
+             current_task.request.id, len(to_list))
     try:
         msg = CourseEmail.objects.get(id=email_id)
     except CourseEmail.DoesNotExist:
@@ -244,7 +245,7 @@ def _send_course_email(email_id, to_list, course_title, course_url, image_url, t
                 raise course_email.retry(
                     arg=[
                         email_id,
-                        to_list=resend_list,
+                        resend_list,
                         course_title,
                         course_url,
                         image_url,
