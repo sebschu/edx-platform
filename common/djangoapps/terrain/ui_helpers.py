@@ -24,16 +24,28 @@ def wait(seconds):
 def wait_for_js_variable_defined(variable):
     js = """
 var callback = arguments[arguments.length - 1];
+var unloadHandler = function() {{
+  callback("unload");
+}}
+addEventListener("beforeunload", unloadHandler);
+addEventListener("unload", unloadHandler);
 var intervalID = setInterval(function() {{
   try {{
     if({variable}) {{
       clearInterval(intervalID);
+      removeEventListener("beforeunload", unloadHandler);
+      removeEventListener("unload", unloadHandler);
       callback(true);
     }}
   }} catch (e) {{}}
 }}, 10);
     """.format(variable=variable)
-    world.browser.driver.execute_async_script(js)
+    result = world.browser.driver.execute_async_script(js)
+    if result == "unload":
+        # we ran this on the wrong page. Wait a bit, and try again, when the
+        # browser has loaded the next page.
+        world.wait(1)
+        return wait_for_js_variable_defined(variable)
 
 
 @world.absorb
@@ -68,17 +80,33 @@ def wait_for_requirejs(dependencies=None):
 var callback = arguments[arguments.length - 1];
 if(window.require) {{
   requirejs.onError = callback;
+  var unloadHandler = function() {{
+    callback("unload");
+  }}
+  addEventListener("beforeunload", unloadHandler);
+  addEventListener("unload", unloadHandler);
+  console.log("injecting...");
   require({deps}, function($) {{
-    $(document).ready(function() {{
-      setTimeout(callback, 50);
-    }});
+    console.log("require is done");
+    setTimeout(function() {{
+      console.log("timeout")
+      removeEventListener("beforeunload", unloadHandler);
+      removeEventListener("unload", unloadHandler);
+      console.log("callback")
+      callback(true);
+    }}, 50);
   }});
 }} else {{
   callback(false);
 }}
     """.format(deps=json.dumps(dependencies))
     result = world.browser.driver.execute_async_script(js)
-    if result not in (None, True, False):
+    if result == "unload":
+        # we ran this on the wrong page. Wait a bit, and try again, when the
+        # browser has loaded the next page.
+        world.wait(1)
+        return wait_for_requirejs(dependencies)
+    elif result not in (None, True, False):
         # we got a requirejs error
         err = RequireJSError("Error loading dependencies: type={0} modules={1}".format(
             result['requireType'], result['requireModules']))
