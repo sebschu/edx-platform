@@ -57,7 +57,7 @@ def delegate_email_batches(email_id, user_id):
         # that creates this CourseEmail row and the celery pipeline that starts this task.
         # We might possibly want to move the blocking into the view function rather than have it in this task.
         log.warning("Failed to get CourseEmail with id %s, retry %d", email_id, current_task.request.retries)
-        raise delegate_email_batches.retry(arg=[email_id, user_id], exc=exc)
+        raise delegate_email_batches.retry(args=[email_id, user_id], exc=exc)
 
     to_option = email_obj.to_option
     course_id = email_obj.course_id
@@ -97,6 +97,8 @@ def delegate_email_batches(email_id, user_id):
     recipient_qset = recipient_qset.order_by('pk')
     total_num_emails = recipient_qset.count()
     num_queries = int(math.ceil(float(total_num_emails) / float(settings.EMAILS_PER_QUERY)))
+    log.info("Sending email with id %s to %s users, using %s queries",
+             email_id, total_num_emails, num_queries)
     last_pk = recipient_qset[0].pk - 1
     num_workers = 0
     for _ in range(num_queries):
@@ -106,6 +108,7 @@ def delegate_email_batches(email_id, user_id):
         num_emails_this_query = len(recipient_sublist)
         num_tasks_this_query = int(math.ceil(float(num_emails_this_query) / float(settings.EMAILS_PER_TASK)))
         chunk = int(math.ceil(float(num_emails_this_query) / float(num_tasks_this_query)))
+        log.info("In query %s/%s ; spawning %s tasks to send %s emails.", _, num_queries, num_tasks_this_query, num_emails_this_query)
         for i in range(num_tasks_this_query):
             to_list = recipient_sublist[i * chunk:i * chunk + chunk]
             course_email.delay(
