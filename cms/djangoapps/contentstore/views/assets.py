@@ -27,7 +27,6 @@ from django.utils.translation import ugettext as _
 
 __all__ = ['asset_index', 'upload_asset']
 
-locked_assets = []
 
 @login_required
 @ensure_csrf_cookie
@@ -61,8 +60,7 @@ def asset_index(request, org, course, name):
         _thumbnail_location = asset.get('thumbnail_location', None)
         thumbnail_location = Location(_thumbnail_location) if _thumbnail_location is not None else None
 
-        # TODO: replace with real logic
-        asset_locked = asset_location in locked_assets
+        asset_locked = asset.get('locked', False)
         asset_json.append(_get_asset_json(asset['displayname'], asset['uploadDate'], asset_location, thumbnail_location, asset_locked))
 
     return render_to_response('asset_index.html', {
@@ -160,17 +158,19 @@ def update_asset(request, org, course, name, asset_id):
     org, course, name: Attributes of the Location for the item to edit
     asset_id: the URL of the asset (used by Backbone as the id)
     """
-    get_location_and_verify_access(request, org, course, name)
-
-    if request.method == 'DELETE':
-        # make sure the location is valid
+    def get_asset_location(asset_id):
+        """ Helper method to get the location (and verify it is valid). """
         try:
             loc = StaticContent.get_location_from_path(asset_id)
         except InvalidLocationError as err:
             # return a 'Bad Request' to browser as we have a malformed Location
             return JsonResponse({"error": err.message}, status=400)
-    
-        # also make sure the item to delete actually exists
+
+    get_location_and_verify_access(request, org, course, name)
+
+    if request.method == 'DELETE':
+        loc = get_asset_location(asset_id)
+        # Make sure the item to delete actually exists.
         try:
             content = contentstore().find(loc)
         except NotFoundError:
@@ -201,11 +201,8 @@ def update_asset(request, org, course, name, asset_id):
         # We don't support creation of new assets through this
         # method-- just changing the locked state.
         modified_asset = json.loads(request.body)
-        url = modified_asset['url']
-        if modified_asset['locked']:
-            locked_assets.append(url)
-        elif url in locked_assets:
-            locked_assets.remove(url)
+        asset_id = modified_asset['url']
+        contentstore().set_attr(get_asset_location(asset_id), 'locked', modified_asset['locked'])
         return JsonResponse(modified_asset, status=201)
 
 def _get_asset_json(display_name, date, location, thumbnail_location, locked):

@@ -119,8 +119,8 @@ class LockAssetTestCase(CourseTestCase):
         def verify_asset_locked_state(locked):
             """ Helper method to verify lock state in the contentstore """
             asset_location = StaticContent.get_location_from_path('/c4x/edX/toy/asset/sample_static.txt')
-            content = contentstore().find(asset_location, throw_on_not_found=False)
-            # TODO verify locked state
+            content = contentstore().find(asset_location)
+            self.assertEqual(content.locked, locked)
 
         def post_asset_update(lock):
             """ Helper method for posting asset update. """
