@@ -12,6 +12,8 @@ CMS.Views.Asset = Backbone.View.extend({
     },
 
     render: function() {
+        this.$el.removeClass();
+
         this.$el.html(this.template({
             display_name: this.model.get('display_name'),
             thumbnail: this.model.get('thumbnail'),
@@ -19,6 +21,12 @@ CMS.Views.Asset = Backbone.View.extend({
             url: this.model.get('url'),
             portable_url: this.model.get('portable_url'),
             locked: this.model.get('locked')}));
+
+        // Add a class of "locked" to the tr element if appropriate.
+        if (this.model.get('locked')) {
+            this.$el.addClass('locked');
+        }
+
         return this;
     },
 
