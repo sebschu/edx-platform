@@ -248,7 +248,7 @@ def _send_course_email(email_id, to_list, course_title, course_url, image_url, t
             countdown
         )
         raise course_email.retry(
-            arg=[
+            args=[
                 email_id,
                 resend_list,
                 course_title,
@@ -266,7 +266,7 @@ def _send_course_email(email_id, to_list, course_title, course_url, image_url, t
         log.warning('Email with id %d not delivered due to temporary error %s, retrying send to %d recipients',
                     email_id, exc, len(to_list))
         raise course_email.retry(
-            arg=[
+            args=[
                 email_id,
                 to_list,
                 course_title,
