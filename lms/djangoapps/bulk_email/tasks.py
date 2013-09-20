@@ -31,14 +31,16 @@ from courseware.courses import get_course_by_id, course_image_url
 log = get_task_logger(__name__)
 
 
-# Exceptions that, if caught, should cause the task to be re-tried
+# Exceptions that, if caught, should cause the task to be re-tried.
+# These errors will be caught a maximum of 5 times before the task fails.
 RETRY_ERRORS = (SMTPDataError, SMTPConnectError, SMTPServerDisconnected, AWSConnectionError)
 
 # Errors that involve exceeding a quota of sent email
 QUOTA_EXCEEDED_ERROR = (SESDailyQuotaExceededError, )
 
 # Errors that mail is being sent too quickly. When caught by a task, it
-# triggers an exponential backoff and retry.
+# triggers an exponential backoff and retry. Retries happen continuously until
+# the email is sent.
 SENDING_RATE_ERROR = (SESMaxSendingRateExceededError, )
 
 @task(default_retry_delay=10, max_retries=5)  # pylint: disable=E1102
@@ -101,6 +103,7 @@ def delegate_email_batches(email_id, user_id):
              email_id, total_num_emails, num_queries)
     last_pk = recipient_qset[0].pk - 1
     num_workers = 0
+    num_emails = 0
     for _ in range(num_queries):
         recipient_sublist = list(recipient_qset.order_by('pk').filter(pk__gt=last_pk)
                                  .values('profile__name', 'email', 'pk')[:settings.EMAILS_PER_QUERY])
@@ -108,8 +111,9 @@ def delegate_email_batches(email_id, user_id):
         num_emails_this_query = len(recipient_sublist)
         num_tasks_this_query = int(math.ceil(float(num_emails_this_query) / float(settings.EMAILS_PER_TASK)))
         chunk = int(math.ceil(float(num_emails_this_query) / float(num_tasks_this_query)))
-        log.info("In query %s/%s ; spawning %s tasks to send %s emails.", _, num_queries, num_tasks_this_query, num_emails_this_query)
+        log.info("In query %s/%s ; spawning %s tasks to send %s emails.", _+1, num_queries, num_tasks_this_query, num_emails_this_query)
         for i in range(num_tasks_this_query):
+            log.info("QUERY %s ------ TASK %s/%s", _+1, i+1, num_tasks_this_query)
             to_list = recipient_sublist[i * chunk:i * chunk + chunk]
             course_email.delay(
                 email_id,
@@ -120,6 +124,8 @@ def delegate_email_batches(email_id, user_id):
                 False
             )
         num_workers += num_tasks_this_query
+        num_emails += num_emails_this_query
+    log.info("Spawned %s workers; sent %s emails", num_workers, num_emails)
     return num_workers
 
 
@@ -235,7 +241,7 @@ def _send_course_email(email_id, to_list, course_title, course_url, image_url, t
         return course_email_result(num_sent, num_error, num_optout)
 
     except SENDING_RATE_ERROR as exc:
-        current_task.request.retries = min(current_task.request.retries, 1)
+        current_task.request.retries = min(current_task.request.retries, 4)
         resend_list = [email for email in to_list if email not in successful_sends]
         log.info("Task %s: Successfully sent to %s users; failed to send to %s users",
                  current_task.request.id, len(successful_sends), len(resend_list))
@@ -243,7 +249,7 @@ def _send_course_email(email_id, to_list, course_title, course_url, image_url, t
         # Don't resend emails that have already succeeded.
         log.warning('Task %s: Email with id %d not delivered due to rate exceeded error %s, retrying send to %d recipients',
                     current_task.request.id, email_id, exc, len(to_list))
-        countdown = ((2 ** random.randint(1,4)) * 15) * random.uniform(.75, 1.5)
+        countdown = ((2 ** current_task.request.retries) * 15) * random.uniform(.5, 1.5)
         log.warning(
             'Current task %s stats: num retries: %s; backoff: %s',
             current_task.request.id,
