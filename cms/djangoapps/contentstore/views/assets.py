@@ -137,10 +137,9 @@ def upload_asset(request, org, course, coursename):
     # readback the saved content - we need the database timestamp
     readback = contentstore().find(content.location)
 
-    # TODO: should get locking state from content (though we expect it to always be False for new asset).
-
+    locked=getattr(content, 'locked', False)
     response_payload = {
-        'asset': _get_asset_json(content.name, readback.last_modified_at, content.location, content.thumbnail_location, False),
+        'asset': _get_asset_json(content.name, readback.last_modified_at, content.location, content.thumbnail_location, locked),
         'msg': _('Upload completed')
     }
 
